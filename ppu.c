@@ -17,6 +17,7 @@
 /* FONT, BACKGROUND */
 #include "imgdata.h"
 #include "background.h"
+#include "bar.h"
 
 /* CTR-LIB */
 #include <ctr/types.h>
@@ -62,6 +63,8 @@ int pow2[32];
 
 int mirror[4];
 
+extern int inMenu;
+
 /* used to export the current scanline for the debugger */
 int current_scanline;
 
@@ -70,7 +73,11 @@ u8* gspHeap;
 u32* gxCmdBuf;
 
 u8 currentBuffer; 
-u8* topLeftFramebuffers[2]; /* The 3DS Framebuffer's */
+/* The 3DS Framebuffer's */
+u8* topLeftFramebuffers[2]; 
+u8* topRightFramebuffers[2]; 
+
+u8 *TopFrameBuffer;
 
 Handle gspEvent, gspSharedMemHandle;
 
@@ -90,6 +97,8 @@ void copyBuffer() {
     GSPGPU_FlushDataCache(NULL, bufAdr, 0x46500);
 
     GX_RequestDma(gxCmdBuf, (u32*)bufAdr, (u32*)topLeftFramebuffers[copiedBuffer], 0x46500);
+    GX_RequestDma(gxCmdBuf, (u32*)bufAdr, (u32*)topRightFramebuffers[copiedBuffer], 0x46500);
+    
 }
 
 
@@ -101,10 +110,14 @@ void gspGpuInit() {
 
     //grab main left screen framebuffer addresses
     GSPGPU_ReadHWRegs(NULL, 0x400468, (u32*)&topLeftFramebuffers, 8);
-
+    GSPGPU_ReadHWRegs(NULL, 0x400468, (u32*)&topRightFramebuffers, 8);
+    
     //convert PA to VA (assuming FB in VRAM)
     topLeftFramebuffers[0]+=0x7000000;
     topLeftFramebuffers[1]+=0x7000000;
+
+    topRightFramebuffers[0]+=0x7000000;
+    topRightFramebuffers[1]+=0x7000000;
 
     //setup our gsp shared mem section
     u8 threadID;
@@ -360,6 +373,7 @@ void draw_pixel(int x, int y, int nescolor) {
     bufAdr[v]=palette[nescolor].b;
     bufAdr[v+1]=palette[nescolor].g;
     bufAdr[v+2]=palette[nescolor].r;
+
 }
 
 
@@ -400,6 +414,28 @@ void draw_string(int sx, int sy, unsigned char str[]) {
         sx += 8;
     }
 }
+
+
+void draw_image_24bpp(int sx, int sy, int w, int h, char img[]) {
+    int x, y, i;
+    i = 0;
+    for (x = 0; x < w; x++) {
+        for (y = h; y > 0; y--) {
+            if (img[i] + img[i + 1] + img[i + 2] != 0) { //Trata preto como transparente
+                draw_pixel_rgb(sx + x, sy + y, img[i + 2], img[i + 1], img[i]);
+            }
+            i += 3;
+        }
+    }
+}
+
+/* Draw Select Bar */
+
+void draw_select_bar(int x, int y) {
+    draw_image_24bpp(x, y, 392, 12, select_bar);
+}
+
+
 
 /* Draw Text on the mid */
 void draw_string_c(int sy, unsigned char str[]) {
@@ -620,29 +656,14 @@ void update_screen() {
 	
 }
 
-/* It will clear screen when the game Start */
-void clearScreen() {
-    swapBuffers();
-    copyBuffer();
-    u8* bufAdr=&gspHeap[0x46500*currentBuffer];
-    memset(bufAdr, 0, 288000);
-}
-
 /* update menu image */
 void updateMenu() {
     swapBuffers();
     copyBuffer();
 
-    u8* bufAdr=&gspHeap[0x46500*currentBuffer];
+        u8* bufAdr=&gspHeap[0x46500*currentBuffer];
+        memcpy(bufAdr, imagem,288000);
 
-    memcpy(bufAdr, imagem,288000);
-}
-
-
-u8 getTopFrameBuffer() {
-    u8* bufAdr=&gspHeap[0x46500 * currentBuffer];
-
-    return bufAdr;
 }
 
 

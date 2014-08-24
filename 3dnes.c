@@ -1,11 +1,6 @@
 
 
-#include <sys/types.h>
-#include <ctype.h>
 #include <stdio.h>
-#include <string.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "6502core.h"
@@ -71,6 +66,8 @@ char rom_name[48];
 long romlen;
 Handle fsuHandle;
 
+u8 in3D = 0;
+
 
 /*************************************************************************************/
 								/* File System */
@@ -119,12 +116,12 @@ void NES_ROMLIST() {
 
 void NES_DrawFileList() {
 	int i = 0;
-	
+
+	draw_select_bar(-67, (cFile * 15) + 53);
+
 	for(i = 0; i < MAX_SCREEN_FILES; i++) {
 		draw_string_c(55 + (i * 15), tn_files[i + sFile]);
 	}
-
-	draw_string(2, (cFile * 15) + 55, ">>");
 
 }
 
@@ -164,7 +161,6 @@ void NES_StartGame() {
 	/* Start Emulation */
 	emu_start();
 	inMenu = 0;
-	clearScreen();
 }
 
 
@@ -237,7 +233,14 @@ void NES_ScreenShot() {
 }
 
 
-
+void NES_Menu() {
+	if(inMenu == 1) {
+		NES_DrawFileList();
+		NES_CurrentFileUpdate();
+		updateMenu();
+		check_joypad();
+	}
+}
 
 
 /*************************************************************************************/
@@ -574,32 +577,31 @@ void start_emulation() {
 				skipframe = 0;
 
 			if(inMenu == 1){
-				NES_DrawFileList();
-				NES_CurrentFileUpdate();
-				updateMenu();
-				check_joypad();
+				NES_Menu();
 			}else {
 				for(scanline = 0; scanline < 262; scanline++) { //262 scanlines?
-		            if (MAPPER == 5) mmc5_hblank(scanline); //MMC5 IRQ
-		            CPU_execute(line_ticks);
-		            if (scanline < 240) {
-		                if (MAPPER == 4) mmc3_hblank(scanline);
-		                render_scanline(scanline);
-		            } else {
-		                if (scanline == 241) {
-		                    if(exec_nmi_on_vblank) {NMI();}
-		                    ppu_status = 0x80;
-		                }
-		            }
-				}
-			
-				if(skipframe == 0)
-					update_screen();
+					
+			            if (MAPPER == 5) mmc5_hblank(scanline); //MMC5 IRQ
+			            CPU_execute(line_ticks);
+			            if (scanline < 240) {
+			                if (MAPPER == 4) mmc3_hblank(scanline);
+			                render_scanline(scanline);
+			            } else {
+			                if (scanline == 241) {
+			                    if(exec_nmi_on_vblank) {NMI();}
+			                    ppu_status = 0x80;
+			                }
+			            }
+					}
 
-				skipframe++;
+				
+					if(skipframe == 0)
+						update_screen();
 
-				check_joypad();
-			  }
+					skipframe++;
+
+					check_joypad();
+			    }
 
 			}
 			else if(status == APP_SUSPENDING)
