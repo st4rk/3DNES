@@ -4,6 +4,6 @@
 #include "3dnes.h"
 
 int main() {
-	start_emu();
+	start_emulation();
 	return 0;
 }
