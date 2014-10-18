@@ -20,14 +20,8 @@
 #include "bar.h"
 
 /* CTR-LIB */
-#include <ctr/types.h>
-#include <ctr/srv.h>
-#include <ctr/APT.h>
-#include <ctr/GSP.h>
-#include <ctr/GX.h>
-#include <ctr/HID.h>
-#include <ctr/svc.h>
-
+#include <3ds.h>
+#include <3ds/gfx.h>
 
 /* ppu control registers */
 u32 ppu_control1 = 0x00;
@@ -58,9 +52,6 @@ u32 ppu_bgscr_f = 0x00;
 
 u8 color_lookup[0x80000];
 
-/* Pow 2 Table */
-int pow2[32];
-
 int mirror[4];
 
 extern int inMenu;
@@ -68,88 +59,10 @@ extern int inMenu;
 /* used to export the current scanline for the debugger */
 int current_scanline;
 
-/* 3DS gspGPU */
-u8* gspHeap;
-u32* gxCmdBuf;
+#define topFrameBufferHeight 240
+#define topFrameBufferWidth  400
 
-u8 currentBuffer; 
-/* The 3DS Framebuffer's */
-u8* topLeftFramebuffers[2]; 
-u8* topRightFramebuffers[2]; 
-
-u8 *TopFrameBuffer;
-
-Handle gspEvent, gspSharedMemHandle;
-
-
-void swapBuffers() {
-    u32 regData;
-    GSPGPU_ReadHWRegs(NULL, 0x400478, (u32*)&regData, 4);
-    regData^=1;
-    currentBuffer=regData&1;
-    GSPGPU_WriteHWRegs(NULL, 0x400478, (u32*)&regData, 4);
-}
-
-void copyBuffer() {
-    //copy topleft FB
-    u8 copiedBuffer=currentBuffer^1;
-    u8* bufAdr=&gspHeap[0x46500*copiedBuffer];
-    GSPGPU_FlushDataCache(NULL, bufAdr, 0x46500);
-
-    GX_RequestDma(gxCmdBuf, (u32*)bufAdr, (u32*)topLeftFramebuffers[copiedBuffer], 0x46500);
-    GX_RequestDma(gxCmdBuf, (u32*)bufAdr, (u32*)topRightFramebuffers[copiedBuffer], 0x46500);
-    
-}
-
-
-void gspGpuInit() {
-    gspInit();
-
-    GSPGPU_AcquireRight(NULL, 0x0);
-    GSPGPU_SetLcdForceBlack(NULL, 0x0);
-
-    //grab main left screen framebuffer addresses
-    GSPGPU_ReadHWRegs(NULL, 0x400468, (u32*)&topLeftFramebuffers, 8);
-    GSPGPU_ReadHWRegs(NULL, 0x400468, (u32*)&topRightFramebuffers, 8);
-    
-    //convert PA to VA (assuming FB in VRAM)
-    topLeftFramebuffers[0]+=0x7000000;
-    topLeftFramebuffers[1]+=0x7000000;
-
-    topRightFramebuffers[0]+=0x7000000;
-    topRightFramebuffers[1]+=0x7000000;
-
-    //setup our gsp shared mem section
-    u8 threadID;
-    svc_createEvent(&gspEvent, 0x0);
-    GSPGPU_RegisterInterruptRelayQueue(NULL, gspEvent, 0x1, &gspSharedMemHandle, &threadID);
-    svc_mapMemoryBlock(gspSharedMemHandle, 0x10002000, 0x3, 0x10000000);
-
-    //map GSP heap
-    svc_controlMemory((u32*)&gspHeap, 0x0, 0x0, 0x2000000, 0x10003, 0x3);
-
-    //wait until we can write stuff to it
-    svc_waitSynchronization1(gspEvent, 0x55bcb0);
-
-    //GSP shared mem : 0x2779F000
-    gxCmdBuf=(u32*)(0x10002000+0x800+threadID*0x200);
-
-    currentBuffer=0;
-}
-
-void gspGpuExit() {
-    GSPGPU_UnregisterInterruptRelayQueue(NULL);
-
-    //unmap GSP shared mem
-    svc_unmapMemoryBlock(gspSharedMemHandle, 0x10002000);
-    svc_closeHandle(gspSharedMemHandle);
-    svc_closeHandle(gspEvent);
-    
-    gspExit();
-
-    //free GSP heap
-    svc_controlMemory((u32*)&gspHeap, (u32)gspHeap, 0x0, 0x2000000, MEMOP_FREE, 0x0);
-}
+u8 topFrameBuffer[0x46500];
 
 void init_ppu() {
     //Otimização para renderizar mais rápido
@@ -167,19 +80,6 @@ void init_ppu() {
             }
         }
     }
-
-    //Tabela com múltiplos de 2
-    int t_var = 1;
-    int i;
-    for (i = 0; i < 31; i++) {
-        if(i == 0)
-            pow2[i] = 1;
-        else {
-            t_var = t_var * 2;
-            pow2[i] = t_var;
-        }
-    }
-    pow2[31] = -2147483648;
 
 }
 
@@ -365,30 +265,35 @@ void draw_pixel(int x, int y, int nescolor) {
     if ((x>=256) || (x<0)) {return;}
     if ((y>=240) || (y<0)) {return;}
 
-    u8* bufAdr=&gspHeap[0x46500*currentBuffer];
+    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
-
-    bufAdr[v]=palette[nescolor].b;
-    bufAdr[v+1]=palette[nescolor].g;
-    bufAdr[v+2]=palette[nescolor].r;
+   
+    framebuffer[v]=palette[nescolor].b;
+    framebuffer[v+1]=palette[nescolor].g;
+    framebuffer[v+2]=palette[nescolor].r;
 
 }
 
 
 /* draw pixel RGB Format */
 void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
-    /* don't fail on attempts to draw outside the screen. */
 
-    u8* bufAdr=&gspHeap[0x46500*currentBuffer];
+
+    /* don't fail on attempts to draw outside the screen. */
+    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
 
-    bufAdr[v]=b;
-    bufAdr[v+1]=g;
-    bufAdr[v+2]=r;;
+    framebuffer[v]=b;
+    framebuffer[v+1]=g;
+    framebuffer[v+2]=r;
+
+
+
 }
 
 /* Draw String */
@@ -432,7 +337,7 @@ void draw_image_24bpp(int sx, int sy, int w, int h, char img[]) {
 /* Draw Select Bar */
 
 void draw_select_bar(int x, int y) {
-    draw_image_24bpp(x, y, 392, 12, select_bar);
+  //  draw_image_24bpp(x, y, 392, 12, select_bar);
 }
 
 
@@ -443,114 +348,145 @@ void draw_string_c(int sy, unsigned char str[]) {
     draw_string(sx, sy, str);
 }
 
-
 /* Render Background */
 void render_background(int scanline) {
-    
+   
     int hscroll = ((loopyV & 31) << 3) + loopyX;
     int vscroll =  (((loopyV >> 5) & 31) << 3) | ((loopyV / 0x1000) & 7);
-
+ 
     int tilerow = (vscroll >> 3) % 30;
     int tileyoffset = vscroll & 7;
-
+ 
     int ptaddr = 0;
     if(ppu_control1 & 0x10) ptaddr = 0x1000;
-
+ 
     int nt_addr = 0x2000 + (loopyV & 0xC00);
     int nt_num = (nt_addr & 0xC00) / 0x400;
-
+    int fPix = 0;
     int tilecount;
     for (tilecount = (hscroll >> 3); tilecount < 32; tilecount++) {
         int tilex = (tilecount << 3) - hscroll + 7;
-        int offset;
-        if (tilex < 7) {offset = tilex;} else {offset = 7;}
-        int tileindex = nt[mirror[nt_num]][tilecount + (tilerow << 5)];
-        int lookup = nt[mirror[nt_num]][0x3C0 + (tilecount >> 2) + ((tilerow >> 2) << 3)];
-        int bgpal = 0;
-        switch ((tilecount & 2) | ((tilerow & 2) << 1)) {
-            case 0: bgpal = (lookup << 2) & 12; break;
-            case 2: bgpal = lookup  & 12; break;
-            case 4: bgpal = (lookup >> 2) & 12; break;
-            case 6: bgpal = (lookup >> 4) & 12; break;
-        }
-
-        int bgtileoffset = ptaddr + (tileindex << 4);
-        
-        if (tileyoffset == 0) {
-            int tiley;
-            for(tiley = 0; tiley < 8; tiley++) { //Desenho padrão de sprite 2BPP 8x8
-                unsigned char lowbyte = ppu_memory[bgtileoffset + tiley];
-                unsigned char highbyte = ppu_memory[bgtileoffset + tiley + 8];
-                int clookup_offset = lowbyte * 0x800 + (highbyte << 3);
-                int curcol;
-                for(curcol = 0; curcol <= offset; curcol++) {
-                    int pcolor = color_lookup[clookup_offset + curcol];
-                    if ((pcolor & 0x3) != 0) {
-                        draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                    if (tilex >= 7 && tilex <= 262) {
+                            int offset;
+                            if (tilex < 7) {offset = tilex;} else {offset = 7;}
+                            int tileindex = nt[mirror[nt_num]][tilecount + (tilerow << 5)];
+                            int lookup = nt[mirror[nt_num]][0x3C0 + (tilecount >> 2) + ((tilerow >> 2) << 3)];
+                            int bgpal = 0;
+                            switch ((tilecount & 2) | ((tilerow & 2) << 1)) {
+                                    case 0: bgpal = (lookup << 2) & 12; break;
+                                    case 2: bgpal = lookup  & 12; break;
+                                    case 4: bgpal = (lookup >> 2) & 12; break;
+                                    case 6: bgpal = (lookup >> 4) & 12; break;
+                            }
+             
+                            int bgtileoffset = ptaddr + (tileindex << 4);
+                       
+                            if (tileyoffset == 0) {
+                                    int tiley;
+                                    for(tiley = 0; tiley < 8; tiley++) { //Desenho padrão de sprite 2BPP 8x8
+                                            unsigned char lowbyte = ppu_memory[bgtileoffset + tiley];
+                                            unsigned char highbyte = ppu_memory[bgtileoffset + tiley + 8];
+                                       
+                                            int curcol;
+                                            for(curcol = 0; curcol <= offset; curcol++) {
+                                                    int pcolor = 0;
+                                                    if(curcol == 0)  
+                                                        fPix = 1;
+                                                    else
+                                                        fPix = (2 << (curcol - 1));
+                                                    
+                                                    if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                                                    if (highbyte & fPix) {pcolor += 2;}
+                                                    if ((pcolor & 0x3) != 0) {
+                                                            draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                                    }
+                                            }
+                                            if (tilex <= 61183) {tilex += 256;}
+                                    }
+                            } else {
+                                    unsigned char lowbyte = ppu_memory[bgtileoffset + tileyoffset];
+                                    unsigned char highbyte = ppu_memory[bgtileoffset + tileyoffset + 8];
+                               
+                                    int curcol;
+                                    for(curcol = 0; curcol <= offset; curcol++) {
+                                            int pcolor = 0;
+                                            if(curcol == 0)  
+                                                fPix = 1;
+                                            else
+                                                fPix = (2 << (curcol - 1));
+                                            
+                                            if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                                            if (highbyte & fPix) {pcolor += 2;}
+                                            if ((pcolor & 0x3) != 0) {
+                                                    draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                              }
+                                    }
+                            }
                     }
-                }
-                if (tilex <= 61183) {tilex += 256;}
-            }
-        } else {
-            unsigned char lowbyte = ppu_memory[bgtileoffset + tileyoffset];
-            unsigned char highbyte = ppu_memory[bgtileoffset + tileyoffset + 8];
-            int clookup_offset = lowbyte * 0x800 + (highbyte << 3);
-            int curcol;
-            for(curcol = 0; curcol <= offset; curcol++) {
-                int pcolor = color_lookup[clookup_offset + curcol];
-                if ((pcolor & 0x3) != 0) {
-                    draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
-                  }
-            }
-        }
     }
-
+ 
     nt_addr ^= 0x400;
     nt_num = (nt_addr & 0xC00) / 0x400;
-
+ 
     /* FINISHED HERE */
-
+ 
     for (tilecount = 0; tilecount <= (hscroll >> 3); tilecount++) {
         int tilex = (tilecount << 3) + 256 - hscroll + 7;
-        int offset;
-        if (tilex > 255) {offset = tilex - 255;} else {offset = 0;}
-        int tileindex = nt[mirror[nt_num]][tilecount + (tilerow << 5)];
-        int lookup = nt[mirror[nt_num]][0x3C0 + (tilecount >> 2) + ((tilerow >> 2) << 3)];
-        int bgpal = 0;
-        switch ((tilecount & 2) | ((tilerow & 2) << 1)) {
-            case 0: bgpal = (lookup << 2) & 12; break;
-            case 2: bgpal = lookup  & 12; break;
-            case 4: bgpal = (lookup >> 2) & 12; break;
-            case 6: bgpal = (lookup >> 4) & 12; break;
-        }
-        int bgtileoffset = ptaddr + (tileindex << 4);
-        if (tileyoffset == 0) {
-            int tiley;
-            for(tiley = 0; tiley < 8; tiley++) { //Desenho padrão de sprite 2BPP 8x8
-                unsigned char lowbyte = ppu_memory[bgtileoffset + tiley];
-                unsigned char highbyte = ppu_memory[bgtileoffset + tiley + 8];
-                int clookup_offset = lowbyte * 0x800 + (highbyte << 3);
-                int curcol;
-                for(curcol = offset; curcol < 8; curcol++) {
-                    int pcolor = color_lookup[clookup_offset + curcol];
-                    if ((pcolor & 0x3) != 0) {
-                        draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                    if (tilex >= 7 && tilex <= 262) {
+                            int offset;
+                            if (tilex > 255) {offset = tilex - 255;} else {offset = 0;}
+                            int tileindex = nt[mirror[nt_num]][tilecount + (tilerow << 5)];
+                            int lookup = nt[mirror[nt_num]][0x3C0 + (tilecount >> 2) + ((tilerow >> 2) << 3)];
+                            int bgpal = 0;
+                            switch ((tilecount & 2) | ((tilerow & 2) << 1)) {
+                                    case 0: bgpal = (lookup << 2) & 12; break;
+                                    case 2: bgpal = lookup  & 12; break;
+                                    case 4: bgpal = (lookup >> 2) & 12; break;
+                                    case 6: bgpal = (lookup >> 4) & 12; break;
+                            }
+                            int bgtileoffset = ptaddr + (tileindex << 4);
+                            if (tileyoffset == 0) {
+                                    int tiley;
+                                    for(tiley = 0; tiley < 8; tiley++) { //Desenho padrão de sprite 2BPP 8x8
+                                            unsigned char lowbyte = ppu_memory[bgtileoffset + tiley];
+                                            unsigned char highbyte = ppu_memory[bgtileoffset + tiley + 8];
+                                       
+                                            int curcol;
+                                            for(curcol = offset; curcol < 8; curcol++) {
+                                                    int pcolor = 0;
+                                                    if(curcol == 0)  
+                                                        fPix = 1;
+                                                    else
+                                                        fPix = (2 << (curcol - 1));
+                                                    
+                                                    if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                                                    if (highbyte & fPix) {pcolor += 2;}
+                                                    if ((pcolor & 0x3) != 0) {
+                                                            draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                                    }
+                                            }
+                                            if (tilex <= 61183) {tilex += 256;}
+                                    }
+                            } else {
+                                    unsigned char lowbyte = ppu_memory[bgtileoffset + tileyoffset];
+                                    unsigned char highbyte = ppu_memory[bgtileoffset + tileyoffset + 8];
+                               
+                                    int curcol;
+                                    for(curcol = offset; curcol < 8; curcol++) {
+                                            int pcolor = 0;
+                                            if(curcol == 0)  
+                                                fPix = 1;
+                                            else
+                                                fPix = (2 << (curcol - 1));
+                                            
+                                            if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                                            if (highbyte & fPix) {pcolor += 2;}
+                                            if ((pcolor & 0x3) != 0) {
+                                                    draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                            }
+                                    }
+                            }
                     }
-                }
-                if (tilex <= 61183) {tilex += 256;}
-            }
-        } else {
-            unsigned char lowbyte = ppu_memory[bgtileoffset + tileyoffset];
-            unsigned char highbyte = ppu_memory[bgtileoffset + tileyoffset + 8];
-            int clookup_offset = lowbyte * 0x800 + (highbyte << 3);
-            int curcol;
-            for(curcol = offset; curcol < 8; curcol++) {
-                int pcolor = color_lookup[clookup_offset + curcol];
-                if ((pcolor & 0x3) != 0) {
-                    draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
-                }
-            }
-        }
     }
 }
 
@@ -562,7 +498,7 @@ void render_sprite(int scanline, bool foreground) {
         int tileindex = sprite_memory[currspr + 1];
         int attr = sprite_memory[currspr + 2];
         int sprx = sprite_memory[currspr + 3];
-
+        register int fPix = 0;
         int ptaddr = 0;
         if(sprite_addr_hi) {ptaddr = 0x1000;}
         int tileh;
@@ -587,8 +523,13 @@ void render_sprite(int scanline, bool foreground) {
                 if (!hflip) {
                     sprx += 7;
                     for (currpix = 7; currpix >= 0; currpix--) {
-                        if (lowbyte & pow2[currpix]) pcolor = 1; else pcolor = 0;
-                        if (highbyte & pow2[currpix]) pcolor += 2;
+                        if(currpix == 0)  
+                            fPix = 1;
+                        else
+                            fPix = (2 << (currpix - 1));
+
+                        if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                        if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
                             draw_pixel(sprx - currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
@@ -596,8 +537,13 @@ void render_sprite(int scanline, bool foreground) {
                     }
                 } else {
                     for (currpix = 0; currpix < 8; currpix++) {
-                        if (lowbyte & pow2[currpix]) pcolor = 1; else pcolor = 0;
-                        if (highbyte & pow2[currpix]) pcolor += 2;
+                        if(currpix == 0)  
+                            fPix = 1;
+                        else
+                            fPix = (2 << (currpix - 1));
+
+                        if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                        if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
                             draw_pixel(sprx + currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
@@ -621,8 +567,13 @@ void render_sprite(int scanline, bool foreground) {
                 if (!hflip) {
                     sprx += 7;
                     for (currpix = 7; currpix >= 0; currpix--) {
-                        if (lowbyte & pow2[currpix]) pcolor = 1; else pcolor = 0;
-                        if (highbyte & pow2[currpix]) pcolor += 2;
+                        if(currpix == 0)  
+                            fPix = 1;
+                        else
+                            fPix = (2 << (currpix - 1));
+
+                        if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                        if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
                             draw_pixel(sprx - currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
@@ -630,8 +581,14 @@ void render_sprite(int scanline, bool foreground) {
                     }
                 } else {
                     for (currpix = 0; currpix < 8; currpix++) {
-                        if (lowbyte & pow2[currpix]) pcolor = 1; else pcolor = 0;
-                        if (highbyte & pow2[currpix]) pcolor += 2;
+                        if(currpix == 0)  
+                            fPix = 1;
+                        else
+                            fPix = (2 << (currpix - 1));
+                        
+
+                        if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
+                        if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
                             draw_pixel(sprx + currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
@@ -646,23 +603,31 @@ void render_sprite(int scanline, bool foreground) {
 /* Update and Clear the background */
 void update_screen() {
     int nescolor = ppu_memory[0x3f00];
+    int x;
 
-    
-    swapBuffers();
-    copyBuffer();
-    u8* bufAdr=&gspHeap[0x46500*currentBuffer];
- 
-    memset(bufAdr + 51840, palette[nescolor].b << 16 | palette[nescolor].g << 8 | palette[nescolor].r, 186160);
-	
+    u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    for(x = 51840; x < 236160; x+=3){
+        bufAdr[x]=palette[nescolor].b;
+        bufAdr[x+1]=palette[nescolor].g;
+        bufAdr[x+2]=palette[nescolor].r;
+    }
+
+  
+}
+
+void updateBottomScreen() {
+//    swapBottomBuffers();
+//    copyBottomBuffer();
+
+//    memset(BottomBuffer, imagem, (320 * 240 * 3));
 }
 
 /* update menu image */
 void updateMenu() {
-    swapBuffers();
-    copyBuffer();
 
-        u8* bufAdr=&gspHeap[0x46500*currentBuffer];
-        memcpy(bufAdr, imagem,288000);
+
+    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    memcpy(framebuffer, imagem, 0x46500);
 
 }
 

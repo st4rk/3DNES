@@ -1,6 +1,7 @@
 
 #include <stdbool.h>
-#include <ctr/types.h>
+#include <3ds.h>
+#include <3ds/gfx.h>
 
 
 extern u32 ppu_control1;
@@ -28,3 +29,5 @@ extern void render_background(int scanline);
 extern void render_sprite(int scanline,bool foreground);
 extern void update_screen();
 extern void do_mirror(int type);
+extern void N3DS_DrawPixel();
+extern void N3DS_SwapBuffers();

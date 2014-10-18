@@ -13,24 +13,17 @@
 
 
 /* included mappers */
-#include "mappers/utils.h"
-#include "mappers/mmc1.h"	// 1
-#include "mappers/unrom.h"	// 2
-#include "mappers/cnrom.h"	// 3
-#include "mappers/mmc3.h"	// 4
-#include "mappers/mmc5.h"	// 5
-#include "mappers/aorom.h"	// 7
-#include "mappers/mapper79.h"	// 79
+#include "utils.h"
+#include "mmc1.h"	// 1
+#include "unrom.h"	// 2
+#include "cnrom.h"	// 3
+#include "mmc3.h"	// 4
+#include "mmc5.h"	// 5
+#include "aorom.h"	// 7
+#include "mapper79.h"	// 79
  
 /* CTR-LIB */
-#include <ctr/types.h>
-#include <ctr/srv.h>
-#include <ctr/APT.h>
-#include <ctr/GSP.h>
-#include <ctr/GX.h>
-#include <ctr/HID.h>
-#include <ctr/svc.h>
-#include <ctr/FS.h>
+#include <3ds.h>
 
 char romfn[256];
 
@@ -58,7 +51,7 @@ int inMenu = 1;
 int enable_background = 1;
 int enable_sprites = 1;
 
-unsigned char frameskip = 0;
+unsigned char frameskip = 2;
 unsigned char skipframe = 0;
 
 char rom_name[48];
@@ -73,7 +66,7 @@ u8 in3D = 0;
 								/* File System */
 FS_archive sdmcArchive;
 
-#define MAX_SIZE 48
+#define MAX_SIZE 0x106
 #define MAX_SCREEN_FILES 10
 #define MAX_FILES 80
 
@@ -85,29 +78,36 @@ char tn_files[MAX_FILES][MAX_SIZE]; /* Total files/names on SD */
 /* Used to press key just one time ! */
 u8 UKEY_UP = 0;
 u8 UKEY_DOWN = 0;
+u8 UKEY_LEFT = 0;
+u8 UKEY_RIGHT = 0;
+u8 UKEY_B = 0;
+
+/* Configuration Menu */
+int confiMenu = 0;
+int configCursor = 0;
+
 
 void NES_ROMLIST() {
 	
 	u16 dirName[512]; 
 	Handle romHandle;
-
-	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/ROMS/");
+	FS_dirent dirStruct;
+	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/ROMS");
 
 	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
-	FSUSER_OpenArchive(fsuHandle, &sdmcArchive);
-	FSUSER_OpenDirectory(fsuHandle, &romHandle, sdmcArchive, dirPath);
+	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
 	/* Get total of files/directory on 3DS SD */
 	int cont = 0;
 	while(1) {
 		u32 dataRead = 0;
-		FSDIR_Read(romHandle, &dataRead, 1, dirName);
+		FSDIR_Read(romHandle, &dataRead, 1, &dirStruct);
 
 		if(dataRead == 0)
 			break;
 
-		unicodeToChar(tn_files[cont], dirName);
+		strcpy(tn_files[cont], dirStruct.name);
 		cont++;
 	}
 
@@ -117,11 +117,25 @@ void NES_ROMLIST() {
 void NES_DrawFileList() {
 	int i = 0;
 
+	draw_string_c(55, "well, not working yet :/ ");
+
 	draw_select_bar(-67, (cFile * 15) + 53);
 
 	for(i = 0; i < MAX_SCREEN_FILES; i++) {
 		draw_string_c(55 + (i * 15), tn_files[i + sFile]);
 	}
+
+}
+
+void NES_drawConfiguration() {
+	draw_select_bar(-67, (configCursor * 15) + 70);
+	draw_string_c(50, "Configuration Menu");
+	draw_string_c(73, "FrameSkip: ");
+	draw_string_c(88, "Background: ");
+	draw_string_c(103,"Sprites: ");
+	draw_string_c(118, "Exit and Start Game");
+
+
 
 }
 
@@ -141,12 +155,12 @@ void NES_StartGame() {
 	strcpy(rom_name, tn_files[currFile]);
 
 	/* ROM_DIR = /3DNES/ROMS/HERE ROM NAME.nes */
-	sprintf(ROM_DIR, "/3DNES/ROMS/%s", tn_files[currFile]);
+	sprintf(ROM_DIR, "/3DNES/ROMS/smb3.nes", tn_files[currFile]);
 
 	FS_archive sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
 	/* Open File */
-	FSUSER_OpenFileDirectly(fsuHandle, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
+	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
 	
 	/* Get ROM Size */
 	FSFILE_GetSize(fileHandle, &fileSize);
@@ -164,45 +178,163 @@ void NES_StartGame() {
 }
 
 
+void NES_ConfigurationMenu() { 
+	u32 keys = ((u32*)0x10000000)[7];
+	
+	/* Configuration Menu */
+		if(keys & BUTTON_LEFT) {
+			if(!UKEY_LEFT) {
+				switch(configCursor) {
+					case 0:
+						frameskip--;
+					break;
+
+					case 1:
+						enable_background = 0;
+					break;
+
+					case 2:
+						enable_sprites = 0;
+					break;
+
+					default:
+
+					break;
+				}
+
+				UKEY_LEFT = 1;
+			}
+		} else {
+			UKEY_LEFT = 0;
+		}
+	
+		if(keys & BUTTON_RIGHT) {
+			if(!UKEY_RIGHT) {
+
+
+				switch(configCursor) {
+					case 0:
+						frameskip++;
+					break;
+
+					case 1:
+						enable_background = 1;
+					break;
+
+					case 2:
+						enable_sprites = 1;
+					break;
+
+					default:
+
+					break;
+				}
+
+
+				UKEY_RIGHT = 1;
+			}
+		} else {
+			UKEY_RIGHT = 0;
+		}
+
+		if(keys & BUTTON_UP){
+			if(!UKEY_UP){
+				if(configCursor > 0)
+					configCursor--;
+				
+				UKEY_UP = 1;
+			}
+		} else {
+			UKEY_UP = 0;
+		}
+
+		if(keys & BUTTON_DOWN){
+			if(!UKEY_DOWN) {
+
+				if(configCursor < 10)
+					configCursor++;
+				
+				UKEY_DOWN = 1;
+			}
+		} else {
+			UKEY_DOWN = 0;
+		}
+
+
+		if(keys & BUTTON_B) {
+			if(!UKEY_B) {
+				if(configCursor == 3) 
+					confiMenu = 0;
+
+				UKEY_B = 1;
+			} else {
+				UKEY_B = 0;
+			}
+		}
+
+}
+
 void NES_CurrentFileUpdate() {
 	u32 keys = ((u32*)0x10000000)[7];
 
-	if(keys & BUTTON_UP){
-		if(!UKEY_UP){
-			if(sFile > 0) 
-				sFile--;
-			 else {
-				if(cFile > 0)
-				   cFile--;
+	if(confiMenu == 0) {
+		if(keys & BUTTON_UP){
+			if(!UKEY_UP){
+				if(sFile > 0) 
+					sFile--;
+				 else {
+					if(cFile > 0)
+					   cFile--;
+				}
+
+				if(currFile > 0)
+					currFile--;
+				
+				UKEY_UP = 1;
 			}
-
-			if(currFile > 0)
-				currFile--;
-			
-			UKEY_UP = 1;
+		} else {
+			UKEY_UP = 0;
 		}
-	} else {
-		UKEY_UP = 0;
+
+		if(keys & BUTTON_DOWN){
+			if(!UKEY_DOWN) {
+				if(cFile < MAX_SCREEN_FILES)
+					cFile++;
+				 else 
+					sFile++;
+				
+				currFile++;
+				
+				UKEY_DOWN = 1;
+			}
+		} else {
+			UKEY_DOWN = 0;
+		}
+
+
+		if(keys & BUTTON_LEFT) {
+			if(!UKEY_LEFT) {
+				confiMenu = 1;
+
+				UKEY_LEFT = 1;
+			}
+		} else {
+			UKEY_LEFT = 0;
+		}
+	
+
 	}
 
-	if(keys & BUTTON_DOWN){
-		if(!UKEY_DOWN) {
-			if(cFile < MAX_SCREEN_FILES)
-				cFile++;
-			 else 
-				sFile++;
-			
-			currFile++;
-			
-			UKEY_DOWN = 1;
+
+	if(keys & BUTTON_B) {
+			if(!UKEY_B) {
+				NES_StartGame();
+
+				UKEY_B = 1;
+			} else {
+				UKEY_B = 0;
+			}
 		}
-	} else {
-		UKEY_DOWN = 0;
-	}
-
-
-	if(keys & BUTTON_B) 
-		NES_StartGame();
 
 }
 
@@ -221,11 +353,11 @@ void NES_ScreenShot() {
 
 	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
-	FSUSER_OpenArchive(fsuHandle, &sdmcArchive);
+	//FSUSER_OpenArchive(NULL, &sdmcArchive);
 
-	FSUSER_OpenDirectory(fsuHandle, &dirHandle, sdmcArchive, dirPath);
+	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
 
-	FSUSER_OpenFile(fsuHandle, &ScreenHandle, sdmcArchive, FS_makePath(PATH_CHAR,  "SS.bin"), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
+	FSUSER_OpenFile(NULL, &ScreenHandle, sdmcArchive, FS_makePath(PATH_CHAR,  "SS.bin"), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
  	
  	FSFILE_Write(ScreenHandle, &bytesRead, 0x0, &FrameBuffer, 288000, 0x10001);
 
@@ -235,21 +367,35 @@ void NES_ScreenShot() {
 
 void NES_Menu() {
 	if(inMenu == 1) {
-		NES_DrawFileList();
-		NES_CurrentFileUpdate();
-		updateMenu();
-		check_joypad();
+
+		if(confiMenu == 1) {
+			updateMenu();
+			NES_drawConfiguration();
+			NES_ConfigurationMenu();
+			updateBottomScreen();
+			check_joypad();
+		} else {
+			updateMenu();
+			NES_DrawFileList();
+			NES_CurrentFileUpdate();
+			updateBottomScreen();
+			check_joypad();
+		}
+		
 	}
 }
 
 
 /*************************************************************************************/
+
 /* exitAPP */
 void exitAPP() {
+	fsExit();
 	hidExit();
-	gspGpuExit();
+	gfxExit();
 	aptExit();
-	svc_exitProcess();
+	srvExit();
+	svcExitProcess();
 }
 
 /* SRAM Load */
@@ -265,12 +411,12 @@ void open_sav() {
 
 	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
-	FSUSER_OpenArchive(fsuHandle, &sdmcArchive);
+	//FSUSER_OpenArchive(NULL, &sdmcArchive);
 
-	FSUSER_OpenDirectory(fsuHandle, &dirHandle, sdmcArchive, dirPath);
+	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
  
 	Handle fileHandledump;
-	FSUSER_OpenFile(fsuHandle, &fileHandledump, sdmcArchive, FS_makePath(PATH_CHAR,  resultado), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
+	FSUSER_OpenFile(NULL, &fileHandledump, sdmcArchive, FS_makePath(PATH_CHAR,  resultado), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
  	
 	/* Load ROM in ROM Cache */
 	FSFILE_Read(fileHandledump, &bytesRead, 0x0, (u32*)&memory[0x6000],(u32)8192);
@@ -293,12 +439,12 @@ void write_sav() {
 
 	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
-	FSUSER_OpenArchive(fsuHandle, &sdmcArchive);
+	//FSUSER_OpenArchive(NULL, &sdmcArchive);
 
-	FSUSER_OpenDirectory(fsuHandle, &dirHandle, sdmcArchive, dirPath);
+	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
  
 	Handle fileHandledump;
-	FSUSER_OpenFile(fsuHandle, &fileHandledump, sdmcArchive, FS_makePath(PATH_CHAR,  resultado), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
+	FSUSER_OpenFile(NULL, &fileHandledump, sdmcArchive, FS_makePath(PATH_CHAR,  resultado), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
  	
  	FSFILE_Write(fileHandledump, &bytesRead, 0x0, &memory[0x6000], 8192, 0x10001);
 
@@ -562,9 +708,8 @@ void start_emulation() {
 	int scanline = 0;
 	APP_STATUS status;
 
-	FSUSER_Initialize(fsuHandle);
 	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-	FSUSER_OpenArchive(fsuHandle, &sdmcArchive);
+	FSUSER_OpenArchive(NULL, &sdmcArchive);
 
 	NES_ROMLIST();
 
@@ -579,8 +724,12 @@ void start_emulation() {
 			if(inMenu == 1){
 				NES_Menu();
 			}else {
-				for(scanline = 0; scanline < 262; scanline++) { //262 scanlines?
 					
+				if(skipframe == 0)
+					update_screen();
+
+				for(scanline = 0; scanline < 262; scanline++) { //262 scanlines?
+
 			            if (MAPPER == 5) mmc5_hblank(scanline); //MMC5 IRQ
 			            CPU_execute(line_ticks);
 			            if (scanline < 240) {
@@ -588,31 +737,29 @@ void start_emulation() {
 			                render_scanline(scanline);
 			            } else {
 			                if (scanline == 241) {
-			                    if(exec_nmi_on_vblank) {NMI();}
+			                    if(exec_nmi_on_vblank) { NMI(); }
 			                    ppu_status = 0x80;
 			                }
 			            }
 					}
 
-				
-					if(skipframe == 0)
-						update_screen();
 
 					skipframe++;
 
 					check_joypad();
+
 			    }
 
-			}
-			else if(status == APP_SUSPENDING)
-			{
+			} else if(status == APP_SUSPENDING) {
 				aptReturnToMenu();
-			}
-			else if(status == APP_SLEEPMODE)
-			{
+			} else if(status == APP_SLEEPMODE) {
 				aptWaitStatusEvent();
 			}
-	
+
+		gspWaitForVBlank();
+		gfxSwapBuffers();
+		gfxFlushBuffers();
+
 	}
 
 
@@ -638,12 +785,13 @@ void reset_emulation() {
 }
 
 int start_emu() {
-  	initSrv();
-	aptInit(APPID_APPLICATION);
-	gspGpuInit();
+	srvInit();	
+	fsInit();
+	aptInit();
+	gfxInit();
 	hidInit(NULL);
 	aptSetupEventHandler();
-	srv_getServiceHandle(NULL, &fsuHandle, "fs:USER");
+	//srvGetServiceHandle(&fsuHandle, "fs:USER");
 
 
 	SRAM = 0; 

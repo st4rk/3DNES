@@ -13,7 +13,8 @@ extern int inMenu;
 //Get's last index of _c in char *in
 int FindLastOf(char *in, char _c) {
     int ret = 0, last_ret = 0;
-    for (int i = 0; i < strlen(in); i++) {
+    int i;
+    for (i = 0; i < strlen(in); i++) {
         if (in[i] == _c)  {
             ret = last_ret;
             last_ret = i;
@@ -24,6 +25,7 @@ int FindLastOf(char *in, char _c) {
 
 //Basic sprintf
 u32 cast_int(char* oBuff, u32 num) {
+    int i;
     if (num < 9) {
         *oBuff++ = (char)(0x30 + num);
         *oBuff = '\0';
@@ -37,7 +39,7 @@ u32 cast_int(char* oBuff, u32 num) {
             num /= 10;
             buffer[bSize++] = num % 10;
         }
-        for (int i = bSize - 2; i >= 0; i--) {
+        for (i = bSize - 2; i >= 0; i--) {
             *oBuff++ = (char)(0x30 + buffer[i]);
             lCount++;
         }
