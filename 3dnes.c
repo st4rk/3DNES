@@ -826,16 +826,21 @@ void mainLoop() {
 				check_joypad();
 
 				GX_SetDisplayTransfer(gxCmdBuf, (u32*)PPU_TopScreen, 0x02000100, (u32*)TopScreenTexture, 0x02000100, 0x3302);
-				GSPGPU_FlushDataCache(NULL, (u8*)PPU_TopScreen, 256 * 512 * 3);
+				gspWaitForPPF();
+				
 				renderScreen();
+				GSPGPU_FlushDataCache(NULL, (u8*)PPU_TopScreen, 256 * 512 * 3);
 
 				GPUCMD_Finalize();
 				GPUCMD_Run(gxCmdBuf);
-
+				gspWaitForP3D();
 				
 				GX_SetDisplayTransfer(gxCmdBuf, (u32*)gpuOut, 0x019001E0, (u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 0x019001E0, 0x01001000);
+				gspWaitForPPF();
+
 				/* Work like memset */
 				GX_SetMemoryFill(gxCmdBuf, (u32*)gpuOut, 0x253040FF, (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
+				gspWaitForPSC0();
 
 			} else if(status == APP_SUSPENDING) {
 				aptReturnToMenu();

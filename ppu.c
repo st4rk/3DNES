@@ -287,6 +287,8 @@ void draw_pixel(int x, int y, int nescolor) {
     PPU_TopScreen[v+1] = palette[nescolor].g;
     PPU_TopScreen[v+2] = palette[nescolor].r;
 
+    memset(PPU_TopScreen, 0x363636, 256 * 512 * 3);
+
 }
 
 
@@ -295,7 +297,7 @@ void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
 
 
     /* don't fail on attempts to draw outside the screen. */
-    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+   /* u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
     y = 240-y;
     x = 72+x;
@@ -304,8 +306,7 @@ void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
     framebuffer[v]=b;
     framebuffer[v+1]=g;
     framebuffer[v+2]=r;
-
-
+    */
 
 }
 
