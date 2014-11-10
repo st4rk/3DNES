@@ -107,10 +107,8 @@ void NES_ROMLIST() {
 	u16 dirName[512]; 
 	Handle romHandle;
 	FS_dirent dirStruct;
+
 	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/ROMS");
-
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
 	/* Get total of files/directory on 3DS SD */
@@ -171,8 +169,6 @@ void NES_StartGame() {
 
 	/* ROM_DIR = /3DNES/ROMS/HERE ROM NAME.nes */
 	sprintf(ROM_DIR, "/3DNES/ROMS/smb3.nes", tn_files[currFile]);
-
-	FS_archive sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
 	/* Open File */
 	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
@@ -366,10 +362,6 @@ void NES_ScreenShot() {
 
 	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/");
 
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
-	//FSUSER_OpenArchive(NULL, &sdmcArchive);
-
 	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
 
 	FSUSER_OpenFile(NULL, &ScreenHandle, sdmcArchive, FS_makePath(PATH_CHAR,  "SS.bin"), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
@@ -427,10 +419,6 @@ void open_sav() {
 	sprintf( resultado, "/3DNES/SAVES/%s", rom_name);
 	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/saves/");
 
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
-	//FSUSER_OpenArchive(NULL, &sdmcArchive);
-
 	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
  
 	Handle fileHandledump;
@@ -454,10 +442,6 @@ void write_sav() {
 	/* Resultado = /3DNES/ROMS/HERE ROM NAME.nes */
 	sprintf( resultado, "/3DNES/SAVES/%s", rom_name);
 	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/saves/");
-
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
-	//FSUSER_OpenArchive(NULL, &sdmcArchive);
 
 	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
  
@@ -864,7 +848,6 @@ int start_emulation() {
 	aptInit();
 	gfxInit();
 	hidInit(NULL);
-	aptSetupEventHandler();
 
 	/* Initialize GPU */
 	GPU_Init(NULL);
