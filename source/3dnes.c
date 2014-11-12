@@ -107,10 +107,8 @@ void NES_ROMLIST() {
 	u16 dirName[512]; 
 	Handle romHandle;
 	FS_dirent dirStruct;
+
 	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/ROMS");
-
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
 	/* Get total of files/directory on 3DS SD */
@@ -171,8 +169,6 @@ void NES_StartGame() {
 
 	/* ROM_DIR = /3DNES/ROMS/HERE ROM NAME.nes */
 	sprintf(ROM_DIR, "/3DNES/ROMS/smb3.nes", tn_files[currFile]);
-
-	FS_archive sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 
 	/* Open File */
 	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
@@ -366,10 +362,6 @@ void NES_ScreenShot() {
 
 	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/");
 
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
-	//FSUSER_OpenArchive(NULL, &sdmcArchive);
-
 	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
 
 	FSUSER_OpenFile(NULL, &ScreenHandle, sdmcArchive, FS_makePath(PATH_CHAR,  "SS.bin"), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
@@ -427,10 +419,6 @@ void open_sav() {
 	sprintf( resultado, "/3DNES/SAVES/%s", rom_name);
 	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/saves/");
 
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
-	//FSUSER_OpenArchive(NULL, &sdmcArchive);
-
 	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
  
 	Handle fileHandledump;
@@ -454,10 +442,6 @@ void write_sav() {
 	/* Resultado = /3DNES/ROMS/HERE ROM NAME.nes */
 	sprintf( resultado, "/3DNES/SAVES/%s", rom_name);
 	FS_path dirPath=FS_makePath(PATH_CHAR, "/3DNES/saves/");
-
-	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-
-	//FSUSER_OpenArchive(NULL, &sdmcArchive);
 
 	FSUSER_OpenDirectory(NULL, &dirHandle, sdmcArchive, dirPath);
  
@@ -768,7 +752,6 @@ void renderScreen() {
 
 void mainLoop() {
 	int scanline = 0;
-	APP_STATUS status;
 	
 	u32 gpuCmdSize = 0x40000;
 	gpuCmd = (u32*) linearAlloc (gpuCmdSize * 4);
@@ -791,64 +774,56 @@ void mainLoop() {
 	gfxSwapBuffersGpu();
 	NES_StartGame();
 
-	while((status=aptGetStatus())!=APP_EXITING) {
-		
-		if(status==APP_RUNNING){
-			ppu_status = 0;
+	while(aptMainLoop()) {
+        ppu_status = 0;
 
-	        if(skipframe > frameskip)
-				skipframe = 0;
+        if(skipframe > frameskip)
+            skipframe = 0;
 
-				GPUCMD_SetBuffer(gpuCmd, gpuCmdSize, 0);
+        GPUCMD_SetBuffer(gpuCmd, gpuCmdSize, 0);
+ 
+    /*	if(inMenu == 1){
+            NES_Menu();
+        } else {
+    */
+        for(scanline = 0; scanline < 262; scanline++) { //262 scanlines?
 
-		/*	if(inMenu == 1){
-				NES_Menu();
-			}else {
-		*/
-				for(scanline = 0; scanline < 262; scanline++) { //262 scanlines?
-
-			            if (MAPPER == 5) mmc5_hblank(scanline); //MMC5 IRQ
-			            CPU_execute(line_ticks);
-			            if (scanline < 240) {
-			                if (MAPPER == 4) mmc3_hblank(scanline);
-			                render_scanline(scanline);
-			            } else {
-			                if (scanline == 241) {
-			                    if(exec_nmi_on_vblank) { NMI(); }
-			                    ppu_status = 0x80;
-			                }
-			            }
-					}
+            if (MAPPER == 5) mmc5_hblank(scanline); //MMC5 IRQ
+            CPU_execute(line_ticks);
+            if (scanline < 240) {
+                if (MAPPER == 4) mmc3_hblank(scanline);
+                render_scanline(scanline);
+            } else {
+                if (scanline == 241) {
+                    if(exec_nmi_on_vblank) { NMI(); }
+                    ppu_status = 0x80;
+                }
+            }
+        }
 
 
-				skipframe++;
+        skipframe++;
 
-				check_joypad();
+        check_joypad();
 
-				GX_SetDisplayTransfer(gxCmdBuf, (u32*)PPU_TopScreen, 0x02000100, (u32*)TopScreenTexture, 0x02000100, 0x3302);
-				GSPGPU_FlushDataCache(NULL, (u8*)PPU_TopScreen, 256 * 512 * 3);
-				renderScreen();
+        GX_SetDisplayTransfer(gxCmdBuf, (u32*)PPU_TopScreen, 0x02000100, (u32*)TopScreenTexture, 0x02000100, 0x3302);
+        GSPGPU_FlushDataCache(NULL, (u8*)PPU_TopScreen, 256 * 512 * 3);
+        renderScreen();
 
-				GPUCMD_Finalize();
-				GPUCMD_Run(gxCmdBuf);
+        GPUCMD_Finalize();
+        GPUCMD_Run(gxCmdBuf);
 
-				
-				GX_SetDisplayTransfer(gxCmdBuf, (u32*)gpuOut, 0x019001E0, (u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 0x019001E0, 0x01001000);
-				/* Work like memset */
-				GX_SetMemoryFill(gxCmdBuf, (u32*)gpuOut, 0x253040FF, (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
 
-			} else if(status == APP_SUSPENDING) {
-				aptReturnToMenu();
-			} else if(status == APP_SLEEPMODE) {
-				aptWaitStatusEvent();
-			}
+        GX_SetDisplayTransfer(gxCmdBuf, (u32*)gpuOut, 0x019001E0, (u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 0x019001E0, 0x01001000);
+        /* Work like memset */
+        GX_SetMemoryFill(gxCmdBuf, (u32*)gpuOut, 0x253040FF, (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
 
 		gspWaitForVBlank();
 	}
 
 
 	exitAPP();
-	return 0;
+	return;
 }
 
 
@@ -873,7 +848,6 @@ int start_emulation() {
 	aptInit();
 	gfxInit();
 	hidInit(NULL);
-	aptSetupEventHandler();
 
 	/* Initialize GPU */
 	GPU_Init(NULL);
