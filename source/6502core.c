@@ -12,7 +12,8 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "3dnes.h"
+#include "nesMemory.h"
+#include "nesGlobal.h"
 #include "6502core.h"
 
 bool penalty_op, penalty_addr;
@@ -24,7 +25,7 @@ unsigned char memory[65536];
 void adc_imm() {
 	EA = PC++;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -35,9 +36,9 @@ void adc_imm() {
 }
 
 void adc_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -48,9 +49,9 @@ void adc_zp() {
 }
 
 void adc_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -61,10 +62,10 @@ void adc_zpx() {
 }
 
 void adc_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -77,10 +78,10 @@ void adc_abso() {
 
 void adc_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -93,10 +94,10 @@ void adc_absx() {
 
 void adc_absy() {
 	penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -108,10 +109,10 @@ void adc_absy() {
 
 
 void adc_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -124,12 +125,12 @@ void adc_indx() {
 
 void adc_indy() {
  	penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -143,7 +144,7 @@ void adc_indy() {
 void and_imm() {
 	EA = PC++;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -151,9 +152,9 @@ void and_imm() {
 }
 
 void and_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -161,9 +162,9 @@ void and_zp() {
 }
 
 void and_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -171,10 +172,10 @@ void and_zpx() {
 }
 
 void and_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -183,10 +184,10 @@ void and_abso() {
 
 void and_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -195,10 +196,10 @@ void and_absx() {
 
 void and_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -206,10 +207,10 @@ void and_absy() {
 }
 
 void and_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -218,12 +219,12 @@ void and_indx() {
 
 void and_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A &= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -240,34 +241,34 @@ void asl_a() {
 }
 
 void asl_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 	data <<= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
 }
 
 void asl_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	unsigned char data = memory_read(EA);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	unsigned char data = memoryRead(EA);
 	if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 	data <<= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
 }
 
 void asl_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 	data <<= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -275,19 +276,19 @@ void asl_abso() {
 
 void asl_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 	data <<= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 7;
 }
 
 void bcc() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if (!(P & 0x1))
@@ -299,7 +300,7 @@ void bcc() {
 }
 
 void bcs() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if ((P & 0x1) == 0x1)
@@ -311,7 +312,7 @@ void bcs() {
 }
 
 void beq() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if ((P & 0x2) == 0x2)
@@ -323,8 +324,8 @@ void beq() {
 }
 
 void bit_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	if (!(data & A)) {P |= 0x2;} else {P &= ~0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	if (data & 0x40) {P |= 0x40;} else {P &= ~0x40;}
@@ -332,9 +333,9 @@ void bit_zp() {
 }
 
 void bit_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (!(data & A)) {P |= 0x2;} else {P &= ~0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	if (data & 0x40) {P |= 0x40;} else {P &= ~0x40;}
@@ -342,7 +343,7 @@ void bit_abso() {
 }
 
 void bmi() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if ((P & 0x80) == 0x80)
@@ -354,7 +355,7 @@ void bmi() {
 }
 
 void bne() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if (!(P & 0x2))
@@ -367,7 +368,7 @@ void bne() {
 }
 
 void bpl() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if (!(P & 0x80))
@@ -381,12 +382,12 @@ void bpl() {
 void brk() {
 
 	PC ++;
-    write_memory(S + 0x100, PC >> 8);
+    writeMemory(S + 0x100, PC >> 8);
 	S = (S - 1) & 0xFF;
-    write_memory(S + 0x100, PC & 0xFF);
+    writeMemory(S + 0x100, PC & 0xFF);
 	S = (S - 1) & 0xFF;
 	P |= 0x10;
-    write_memory(S + 0x100, P);
+    writeMemory(S + 0x100, P);
 	S = (S - 1) & 0xFF;
 	P |= 0x4;
 	PC = memory[0xFFFE] + (memory[0xFFFF] * 0x100);
@@ -394,7 +395,7 @@ void brk() {
 }
 
 void bvc() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if (!(P & 0x40))
@@ -406,7 +407,7 @@ void bvc() {
 }
 
 void bvs() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 
 	if ((P & 0x40) == 0x40)
@@ -426,7 +427,7 @@ void clv() { P &=~0x40; tick_count += 2; }
 void cmp_imm() {
 	EA = PC++;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -436,9 +437,9 @@ void cmp_imm() {
 
 
 void cmp_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -448,9 +449,9 @@ void cmp_zp() {
 
 
 void cmp_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -460,10 +461,10 @@ void cmp_zpx() {
 
 
 void cmp_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -474,10 +475,10 @@ void cmp_abso() {
 
 void cmp_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -488,10 +489,10 @@ void cmp_absx() {
 
 void cmp_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -501,10 +502,10 @@ void cmp_absy() {
 
 
 void cmp_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -515,12 +516,12 @@ void cmp_indx() {
 
 void cmp_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	temp = A - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -530,7 +531,7 @@ void cmp_indy() {
 
 void cpx_imm() {
 	EA = PC++;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = X - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -539,8 +540,8 @@ void cpx_imm() {
 }
 
 void cpx_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	int temp = X - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -550,9 +551,9 @@ void cpx_zp() {
 
 
 void cpx_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = X - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -563,7 +564,7 @@ void cpx_abso() {
 
 void cpy_imm() {
 	EA = PC++;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = Y - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -573,8 +574,8 @@ void cpy_imm() {
 
 
 void cpy_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	int temp = Y - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -584,9 +585,9 @@ void cpy_zp() {
 
 
 void cpy_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	int temp = Y - data;
 	if (!(temp & 0x8000)) {P |= 0x1;} else {P &= ~0x1;}
 	if (temp) {P &= ~0x2;} else {P |= 0x2;}
@@ -595,28 +596,28 @@ void cpy_abso() {
 }
 
 void dec_zp() {
-	EA = memory_read(PC++);
-	write_memory(EA, (memory_read(EA) - 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	writeMemory(EA, (memoryRead(EA) - 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
     if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
 }
 
 void dec_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	write_memory(EA, (memory_read(EA) - 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	writeMemory(EA, (memoryRead(EA) - 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
     if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
 }
 
 void dec_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	write_memory(EA, (memory_read(EA) - 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	writeMemory(EA, (memoryRead(EA) - 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
     if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -624,10 +625,10 @@ void dec_abso() {
 
 void dec_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
-	write_memory(EA, (memory_read(EA) - 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	writeMemory(EA, (memoryRead(EA) - 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
     if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 7;
@@ -650,7 +651,7 @@ void dey() {
 void eor_imm() {
 	EA = PC++;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -658,9 +659,9 @@ void eor_imm() {
 }
 
 void eor_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -668,9 +669,9 @@ void eor_zp() {
 }
 
 void eor_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -678,10 +679,10 @@ void eor_zpx() {
 }
 
 void eor_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -690,10 +691,10 @@ void eor_abso() {
 
 void eor_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -702,10 +703,10 @@ void eor_absx() {
 
 void eor_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -713,10 +714,10 @@ void eor_absy() {
 }
 
 void eor_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -725,12 +726,12 @@ void eor_indx() {
 
 void eor_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A ^= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -738,29 +739,29 @@ void eor_indy() {
 }
 
 void inc_zp() {
-	EA = memory_read(PC++);
-	write_memory(EA, (memory_read(EA) + 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	writeMemory(EA, (memoryRead(EA) + 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
 }
 
 void inc_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	write_memory(EA, (memory_read(EA) + 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	writeMemory(EA, (memoryRead(EA) + 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
 }
 
 void inc_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
 
-	write_memory(EA, (memory_read(EA) + 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	writeMemory(EA, (memoryRead(EA) + 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -768,11 +769,11 @@ void inc_abso() {
 
 void inc_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
 
-	write_memory(EA, (memory_read(EA) + 1) & 0xFF);
-	unsigned char data = memory_read(EA);
+	writeMemory(EA, (memoryRead(EA) + 1) & 0xFF);
+	unsigned char data = memoryRead(EA);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 7;
@@ -793,26 +794,26 @@ void iny() {
 }
 
 void jmp_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
 	PC = EA; tick_count += 3;
 }
 
 void jmp_ind() {
-	int temp = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	int temp = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
 	int data = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	EA = memory_read(temp) + (memory_read(data) * 0x100);
+	EA = memoryRead(temp) + (memoryRead(data) * 0x100);
 	PC = EA; tick_count += 5;
 }
 
 void jsr() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
 
-    write_memory(S + 0x100, (PC - 1) >> 8);
+    writeMemory(S + 0x100, (PC - 1) >> 8);
 	S = (S - 1) & 0xFF;
-    write_memory(S + 0x100, (PC - 1) & 0xFF);
+    writeMemory(S + 0x100, (PC - 1) & 0xFF);
 	S = (S - 1) & 0xFF;
 	PC = EA;
 	tick_count += 6;
@@ -821,7 +822,7 @@ void jsr() {
 void lda_imm() {
 	EA = PC++;
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 2;
@@ -829,10 +830,10 @@ void lda_imm() {
 
 
 void lda_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
     
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 3;
@@ -840,9 +841,9 @@ void lda_zp() {
 
 
 void lda_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -850,10 +851,10 @@ void lda_zpx() {
 
 
 void lda_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -862,10 +863,10 @@ void lda_abso() {
 
 void lda_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -874,10 +875,10 @@ void lda_absx() {
 
 void lda_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -885,10 +886,10 @@ void lda_absy() {
 
 
 void lda_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -897,12 +898,12 @@ void lda_indx() {
 
 void lda_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	A = memory_read(EA);
+	A = memoryRead(EA);
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
@@ -911,35 +912,35 @@ void lda_indy() {
 void ldx_imm() {
 	EA = PC++;
     penalty_op = true;
-	X = memory_read(EA);
+	X = memoryRead(EA);
 	if (X) {P &= ~0x2;} else {P |= 0x2;}
 	if (X & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 2;
 }
 
 void ldx_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	X = memory_read(EA);
+	X = memoryRead(EA);
 	if (X) {P &= ~0x2;} else {P |= 0x2;}
 	if (X & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 3;
 }
 
 void ldx_zpy() {
-	EA = (memory_read(PC++) + Y) & 0xFF;
+	EA = (memoryRead(PC++) + Y) & 0xFF;
     penalty_op = true;
-	X = memory_read(EA);
+	X = memoryRead(EA);
 	if (X) {P &= ~0x2;} else {P |= 0x2;}
 	if (X & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
 }
 
 void ldx_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	X = memory_read(EA);
+	X = memoryRead(EA);
 	if (X) {P &= ~0x2;} else {P |= 0x2;}
 	if (X & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -947,10 +948,10 @@ void ldx_abso() {
 
 void ldx_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	X = memory_read(EA);
+	X = memoryRead(EA);
 	if (X) {P &= ~0x2;} else {P |= 0x2;}
 	if (X & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -959,35 +960,35 @@ void ldx_absy() {
 void ldy_imm() {
 	EA = PC++;
     penalty_op = true;
-	Y = memory_read(EA);
+	Y = memoryRead(EA);
 	if (Y) {P &= ~0x2;} else {P |= 0x2;}
 	if (Y & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 2;
 }
 
 void ldy_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	Y = memory_read(EA);
+	Y = memoryRead(EA);
 	if (Y) {P &= ~0x2;} else {P |= 0x2;}
 	if (Y & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 3;
 }
 
 void ldy_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	Y = memory_read(EA);
+	Y = memoryRead(EA);
 	if (Y) {P &= ~0x2;} else {P |= 0x2;}
 	if (Y & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
 }
 
 void ldy_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	Y = memory_read(EA);
+	Y = memoryRead(EA);
 	if (Y) {P &= ~0x2;} else {P |= 0x2;}
 	if (Y & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -995,10 +996,10 @@ void ldy_abso() {
 
 void ldy_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	Y = memory_read(EA);
+	Y = memoryRead(EA);
 	if (Y) {P &= ~0x2;} else {P |= 0x2;}
 	if (Y & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -1013,34 +1014,34 @@ void lsr_a() {
 }
 
 void lsr_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 	data >>= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
 }
 
 void lsr_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	unsigned char data = memory_read(EA);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	unsigned char data = memoryRead(EA);
 	if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 	data >>= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
 }
 
 void lsr_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 	data >>= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -1048,12 +1049,12 @@ void lsr_abso() {
 
 void lsr_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 	data >>= 1;
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 7;
@@ -1065,7 +1066,7 @@ void nop() { tick_count += 2; }
 void ora_imm() {
 	EA = PC++;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1074,9 +1075,9 @@ void ora_imm() {
 
 
 void ora_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1085,9 +1086,9 @@ void ora_zp() {
 
 
 void ora_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1096,10 +1097,10 @@ void ora_zpx() {
 
 
 void ora_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1109,10 +1110,10 @@ void ora_abso() {
 
 void ora_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1122,10 +1123,10 @@ void ora_absx() {
 
 void ora_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1134,10 +1135,10 @@ void ora_absy() {
 
 
 void ora_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1147,12 +1148,12 @@ void ora_indx() {
 
 void ora_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
@@ -1160,20 +1161,20 @@ void ora_indy() {
 }
 
 void pha() {
-    write_memory(S + 0x100, A);
+    writeMemory(S + 0x100, A);
 	S = (S - 1) & 0xFF;
 	tick_count += 3;
 }
 
 void php() {
-    write_memory(S + 0x100, P | 0x10);
+    writeMemory(S + 0x100, P | 0x10);
 	S = (S - 1) & 0xFF;
 	tick_count += 3;
 }
 
 void pla() {
     S = (S + 1) & 0xFF;
-	A = memory_read(S + 0x100);
+	A = memoryRead(S + 0x100);
     if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 4;
@@ -1181,7 +1182,7 @@ void pla() {
 
 void plp() {
     S = (S + 1) & 0xFF;
-	P = memory_read(S + 0x100) | 0x20;
+	P = memoryRead(S + 0x100) | 0x20;
 	tick_count += 4;
 }
 
@@ -1202,8 +1203,8 @@ void rol_a() {
 }
 
 void rol_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
@@ -1214,15 +1215,15 @@ void rol_zp() {
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 		data <<= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
 }
 
 void rol_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	unsigned char data = memory_read(EA);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
@@ -1233,16 +1234,16 @@ void rol_zpx() {
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 		data <<= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
 }
 
 void rol_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
@@ -1253,7 +1254,7 @@ void rol_abso() {
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 		data <<= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -1261,9 +1262,9 @@ void rol_abso() {
 
 void rol_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
@@ -1274,7 +1275,7 @@ void rol_absx() {
 	    if (data & 0x80) {P |= 0x1;} else {P &= ~0x1;}
 		data <<= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 7;	
@@ -1297,8 +1298,8 @@ void ror_a() {
 }
 
 void ror_zp() {
-	EA = memory_read(PC++);
-	unsigned char data = memory_read(EA);
+	EA = memoryRead(PC++);
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 		if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
@@ -1309,7 +1310,7 @@ void ror_zp() {
 	    if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 		data >>= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 5;
@@ -1317,8 +1318,8 @@ void ror_zp() {
 
 
 void ror_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	unsigned char data = memory_read(EA);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 		if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
@@ -1329,7 +1330,7 @@ void ror_zpx() {
 	    if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 		data >>= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -1337,9 +1338,9 @@ void ror_zpx() {
 
 
 void ror_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 		if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
@@ -1350,7 +1351,7 @@ void ror_abso() {
 	    if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 		data >>= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 6;
@@ -1359,9 +1360,9 @@ void ror_abso() {
 
 void ror_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
-	unsigned char data = memory_read(EA);
+	unsigned char data = memoryRead(EA);
 	if (P & 0x1)
 	{
 		if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
@@ -1372,7 +1373,7 @@ void ror_absx() {
 	    if (data & 0x1) {P |= 0x1;} else {P &= ~0x1;}
 		data >>= 1;
 	}
-	write_memory(EA, data);
+	writeMemory(EA, data);
 	if (data) {P &= ~0x2;} else {P |= 0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	tick_count += 7;
@@ -1380,19 +1381,19 @@ void ror_absx() {
 
 void rti() {
     S = (S + 1) & 0xFF;
-	P = memory_read(S + 0x100) | 0x20;
+	P = memoryRead(S + 0x100) | 0x20;
 	S = (S + 1) & 0xFF;
-	PC = memory_read(S + 0x100);
+	PC = memoryRead(S + 0x100);
 	S = (S + 1) & 0xFF;
-	PC |= (memory_read(S + 0x100) * 0x100);
+	PC |= (memoryRead(S + 0x100) * 0x100);
 	tick_count += 6;
 }
 
 void rts() {
     S = (S + 1) & 0xFF;
-	PC = memory_read(S + 0x100);
+	PC = memoryRead(S + 0x100);
 	S = (S + 1) & 0xFF;
-	PC |= (memory_read(S + 0x100) * 0x100);
+	PC |= (memoryRead(S + 0x100) * 0x100);
 	PC++;
 	tick_count += 6;
 }
@@ -1400,7 +1401,7 @@ void rts() {
 void sbc_imm() {
 	EA = PC++;
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1411,9 +1412,9 @@ void sbc_imm() {
 }
 
 void sbc_zp() {
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1424,9 +1425,9 @@ void sbc_zp() {
 }
 
 void sbc_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1437,10 +1438,10 @@ void sbc_zpx() {
 }
 
 void sbc_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1452,10 +1453,10 @@ void sbc_abso() {
 
 void sbc_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1467,10 +1468,10 @@ void sbc_absx() {
 
 void sbc_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	int temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1481,10 +1482,10 @@ void sbc_absy() {
 }
 
 void sbc_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1496,12 +1497,12 @@ void sbc_indx() {
 
 void sbc_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data2 = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data2 = memory_read(temp) + (memory_read(data2) * 0x100);
+	data2 = memoryRead(temp) + (memoryRead(data2) * 0x100);
 	EA = data2 + Y;
     penalty_op = true;
-	unsigned char data = memory_read(EA) ^ 0xFF;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
 	temp = A + data + (P & 0x1);
 	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
 	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
@@ -1527,96 +1528,96 @@ void sei() {
 }
 
 void sta_zp() {
-	EA = memory_read(PC++);
-	write_memory(EA, A);
+	EA = memoryRead(PC++);
+	writeMemory(EA, A);
 	tick_count += 3;
 }
 
 void sta_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	write_memory(EA, A);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	writeMemory(EA, A);
 	tick_count += 4;
 }
 
 
 void sta_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	write_memory(EA, A);
+	writeMemory(EA, A);
 	tick_count += 4;
 }
 
 
 void sta_absx() {
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
-	write_memory(EA, A);
+	writeMemory(EA, A);
 	tick_count += 5;
 }
 
 
 void sta_absy() {
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
-	write_memory(EA, A);
+	writeMemory(EA, A);
 	tick_count += 5;
 }
 
 void sta_indx() {
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
-	write_memory(EA, A);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
+	writeMemory(EA, A);
 	tick_count += 6;
 }
 
 void sta_indy() {
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data = memory_read(temp) + (memory_read(data) * 0x100);
+	data = memoryRead(temp) + (memoryRead(data) * 0x100);
 	EA = data + Y;
-	write_memory(EA, A);
+	writeMemory(EA, A);
 	tick_count += 6;
 }
 
 
 void stx_zp() {
-	EA = memory_read(PC++);
-	write_memory(EA, X);
+	EA = memoryRead(PC++);
+	writeMemory(EA, X);
 	tick_count += 3;
 }
 
 void stx_zpy() {
-	EA = (memory_read(PC++) + Y) & 0xFF;
-	write_memory(EA, X);
+	EA = (memoryRead(PC++) + Y) & 0xFF;
+	writeMemory(EA, X);
 	tick_count += 4;
 }
 
 void stx_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	write_memory(EA, X);
+	writeMemory(EA, X);
 	tick_count += 4;
 }
 
 void sty_zp() {
-	EA = memory_read(PC++);
-	write_memory(EA, Y);
+	EA = memoryRead(PC++);
+	writeMemory(EA, Y);
 	tick_count += 3;
 }
 
 void sty_zpx() {
-	EA = (memory_read(PC++) + X) & 0xFF;
-	write_memory(EA, Y);
+	EA = (memoryRead(PC++) + X) & 0xFF;
+	writeMemory(EA, Y);
 	tick_count += 4;
 }
 
 void sty_abso() {
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
-	write_memory(EA, Y);
+	writeMemory(EA, Y);
 	tick_count += 4;
 }
 
@@ -1669,56 +1670,56 @@ void imm() { //immediate
 }
 
 void zp() { //zero-page
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 }
 
 void zpx() { //zero-page,X
-	EA = (memory_read(PC++) + X) & 0xFF;
+	EA = (memoryRead(PC++) + X) & 0xFF;
 }
 
 void zpy() { //zero-page,Y
-	EA = (memory_read(PC++) + Y) & 0xFF;
+	EA = (memoryRead(PC++) + Y) & 0xFF;
 }
 
 void rel() { //relative for branch ops (8-bit immediate value, sign-extended)
-	EA = memory_read(PC++);
+	EA = memoryRead(PC++);
 	if (EA >= 0x80) {EA -= 0x100;}
 }
 
 void abso() { //absolute
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
 }
 
 void absx() { //absolute,X
     penalty_addr = true;
-	EA =memory_read(PC) + (memory_read(PC + 1) * 0x100) + X;
+	EA =memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + X;
 	PC += 2;
 }
 
 void absy() { //absolute,Y
     penalty_addr = true;
-	EA = memory_read(PC) + (memory_read(PC + 1) * 0x100) + Y;
+	EA = memoryRead(PC) + (memoryRead(PC + 1) * 0x100) + Y;
 	PC += 2;
 }
 
 void ind() { //indirect
-	int temp = memory_read(PC) + (memory_read(PC + 1) * 0x100);
+	int temp = memoryRead(PC) + (memoryRead(PC + 1) * 0x100);
 	PC += 2;
 	int data = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	EA = memory_read(temp) + (memory_read(data) * 0x100);
+	EA = memoryRead(temp) + (memoryRead(data) * 0x100);
 }
 
 void indx() { //(indirect,X)
-    int temp = memory_read(PC++) + X;
-	EA = memory_read(temp & 0xFF) + (memory_read((temp + 1) & 0xFF) * 0x100);
+    int temp = memoryRead(PC++) + X;
+	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
 }
 
 void indy() { //(indirect),Y
     penalty_addr = true;
-	int temp = memory_read(PC++);
+	int temp = memoryRead(PC++);
 	int data = (temp & 0xFF00) | ((temp + 1) & 0xFF); //ZP Wrap
-	data = memory_read(temp) + (memory_read(data) * 0x100);
+	data = memoryRead(temp) + (memoryRead(data) * 0x100);
 	EA = data + Y;
 }
 
@@ -1728,12 +1729,12 @@ void indy() { //(indirect),Y
 
 void IRQ() {
 	//Maskable Interrupt
-    write_memory(S + 0x100, PC >> 8);
+    writeMemory(S + 0x100, PC >> 8);
 	S = (S - 1) & 0xFF;
-	write_memory(S + 0x100, PC & 0xFF);
+	writeMemory(S + 0x100, PC & 0xFF);
 	S = (S - 1) & 0xFF;
 	P |= 0x10;
-	write_memory(S + 0x100, P);
+	writeMemory(S + 0x100, P);
 	S = (S - 1) & 0xFF;
 	P |= 0x4;
 	PC = memory[0xFFFE] + (memory[0xFFFF] * 0x100);
@@ -1743,12 +1744,12 @@ void IRQ() {
 
 void NMI() {
 	//Non-Maskable Interrupt
-    write_memory(S + 0x100, PC >> 8);
+    writeMemory(S + 0x100, PC >> 8);
 	S = (S - 1) & 0xFF;
-	write_memory(S + 0x100, PC & 0xFF);
+	writeMemory(S + 0x100, PC & 0xFF);
 	S = (S - 1) & 0xFF;
 	P |= 0x10;
-    write_memory(S + 0x100, P);
+    writeMemory(S + 0x100, P);
 	S = (S - 1) & 0xFF;
 	P |= 0x4;
 	PC = memory[0xFFFA] + (memory[0xFFFB] * 0x100);

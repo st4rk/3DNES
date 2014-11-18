@@ -1,3 +1,4 @@
+
 void aorom_switch_prg(int bank) {
 	int prg_size;
 	unsigned int address;
@@ -6,7 +7,7 @@ void aorom_switch_prg(int bank) {
 	prg_size = 32768;
 
 
-	memcpy(memory + address, romcache + 16 + (bank  * prg_size), prg_size);
+	memcpy(memory + address, ROM_Cache + 16 + (bank  * prg_size), prg_size);
 }
 
 void

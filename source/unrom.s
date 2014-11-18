@@ -33,7 +33,7 @@ unrom_switch_prg:
 	ldr      r0, =memory
 	add      r0, r0, r4
 	@ romcache + 16	+ (bank * prg_size)
-	ldr      r1, =romcache+16
+	ldr      r1, =ROM_Cache+16
 	add      r1, r1, r3
 	@ memcpy (memory, romcache, prg_size)
 

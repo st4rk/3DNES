@@ -33,22 +33,22 @@ void copynt(int nt_num) {
 }
 
 void mmc5_switch_prg(int address, int bank, int prg_size) {
-	memcpy(memory + address, romcache + 16 + (maskaddr(bank)  * 0x2000), prg_size);
+    memcpy(memory + address, ROM_Cache + 16 + (maskaddr(bank)  * 0x2000), prg_size);
 }
 
 void mmc5_switch_chr(int bank, int page, int chr_size) {
-	int prg_size;
+    int prg_size;
 
-	int chr_start;
+    int chr_start;
 
-	unsigned int address;
+    unsigned int address;
 
-	address = page * 0x400;
+    address = page * 0x400;
 
-	prg_size = 16384;
-	chr_start = prg_size * PRG;
+    prg_size = 16384;
+    chr_start = prg_size * PRG;
 
-	memcpy(ppu_memory + address, romcache + 16 + chr_start + (bank * 0x400), chr_size);
+    memcpy(PPU_Memory + address, ROM_Cache + 16 + chr_start + (bank * 0x400), chr_size);
 }
 
 void mmc5_access(unsigned int address,unsigned char data) {
@@ -105,7 +105,7 @@ void mmc5_access(unsigned int address,unsigned char data) {
                         } else { //METAL SLADER GLORY ESCREVE AQUI !!!!!!!!!!!!
                             //???
                             //printf("mmc5 wram\n");
-                            memcpy(mmc5_wram + (mmc5_wram_page * 8192) + (mmc5_wram_chip * 8192), romcache + 16 + (maskaddr(data & 0x7F)  * 0x2000), 8192);
+                            memcpy(mmc5_wram + (mmc5_wram_page * 8192) + (mmc5_wram_chip * 8192), ROM_Cache + 16 + (maskaddr(data & 0x7F)  * 0x2000), 8192);
                             //mmc5_switch_prg(0x8000, data & 0x7F, 16384); break;
                         }
                     break;

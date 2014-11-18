@@ -1,3 +1,6 @@
+#include "6502core.h"
+// TODO: Write in ASM
+
 int mmc1_reg[4];
 int mmc1_seq;
 int mmc1_acc;
@@ -29,7 +32,7 @@ void mmc1_switch_chr(int bank, int pagesize, int area) {
 
 	}
 
-	memcpy(ppu_memory + address, romcache + 16 + chr_start + (bank * chr_size), chr_size);
+	memcpy(PPU_Memory + address, ROM_Cache + 16 + chr_start + (bank * chr_size), chr_size);
 }
 
 void mmc1_access(unsigned int address,unsigned char data) {
@@ -64,16 +67,16 @@ void mmc1_access(unsigned int address,unsigned char data) {
 			//Bank Switch PRG
 			if ((mmc1_reg[0] & 0x08) == 0) { //32k PRG
                 //Copia um banco de 32k
-                memcpy(memory + 0x8000, romcache + 16 + (maskaddr((mmc1_reg[3] & 15) * 4) * 0x2000), 32768);
+                memcpy(memory + 0x8000, ROM_Cache + 16 + (maskaddr((mmc1_reg[3] & 15) * 4) * 0x2000), 32768);
             } else { //16k PRG
                 if (mmc1_reg[0] & 0x04) {
                     //Copia dois bancos de 16k
-                    memcpy(memory + 0xC000, romcache + 16 + (maskaddr(0xFE) * 0x2000), 16384);
-                    memcpy(memory + 0x8000, romcache + 16 + (maskaddr((mmc1_reg[3] & 15) * 2) * 0x2000), 16384);
+                    memcpy(memory + 0xC000, ROM_Cache + 16 + (maskaddr(0xFE) * 0x2000), 16384);
+                    memcpy(memory + 0x8000, ROM_Cache + 16 + (maskaddr((mmc1_reg[3] & 15) * 2) * 0x2000), 16384);
                 } else {
                     //Copia dois bancos de 16k
-                    memcpy(memory + 0x8000, romcache + 16, 16384);
-                    memcpy(memory + 0xC000, romcache + 16 + (maskaddr((mmc1_reg[3] & 15) * 2)  * 0x2000), 16384);
+                    memcpy(memory + 0x8000, ROM_Cache + 16, 16384);
+                    memcpy(memory + 0xC000, ROM_Cache + 16 + (maskaddr((mmc1_reg[3] & 15) * 2)  * 0x2000), 16384);
                 }
             }
 

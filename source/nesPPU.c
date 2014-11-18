@@ -1,27 +1,11 @@
-
-
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <unistd.h>
-
-#include "functions.h"
-#include "3dnes.h"
-#include "ppu.h"
-#include "macros.h"
-#include "romloader.h"
-#include "palette.h"
-#include "6502core.h"
+#include "nesPPU.h"
 
 /* FONT, BACKGROUND */
-#include "imgdata.h"
-#include "background.h"
-#include "bar.h"
+#include "gfx/imgdata.h"
+#include "gfx/background.h"
+#include "gfx/bar.h"
 
-/* CTR-LIB */
-#include <3ds.h>
-#include <3ds/gfx.h>
+#include "palette.h"
 
 /* ppu control registers */
 u32 ppu_control1 = 0x00;
@@ -54,8 +38,6 @@ u8 color_lookup[0x80000];
 
 int mirror[4];
 
-extern int inMenu;
-
 /* used to export the current scanline for the debugger */
 int current_scanline;
 
@@ -83,7 +65,7 @@ void init_ppu() {
 
 }
 
-void write_ppu_memory(unsigned int address,unsigned char data) {
+void write_PPU_Memory(unsigned int address,unsigned char data) {
 
     if(address == 0x2000) {
         ppu_addr_tmp = data;
@@ -107,7 +89,7 @@ void write_ppu_memory(unsigned int address,unsigned char data) {
         return;
         }
 
-    /* sprite_memory address register */
+    /* SPRITE_Memory address register */
     if(address == 0x2003) {
         ppu_addr_tmp = data;
 
@@ -117,11 +99,11 @@ void write_ppu_memory(unsigned int address,unsigned char data) {
         return;
     }
 
-    /* sprite_memory i/o register */
+    /* SPRITE_Memory i/o register */
     if(address == 0x2004) {
         ppu_addr_tmp = data;
 
-        sprite_memory[sprite_address] = data;
+        SPRITE_Memory[sprite_address] = data;
         sprite_address++;
 
         memory[address] = data;
@@ -196,7 +178,7 @@ void write_ppu_memory(unsigned int address,unsigned char data) {
 
         ppu_addr_tmp = data;
 
-        ppu_memory[ppu_addr] = data;
+        PPU_Memory[ppu_addr] = data;
 
         /* nametable mirroring */
         if((ppu_addr >= 0x2000) && (ppu_addr <= 0x3EFF)) {
@@ -206,7 +188,7 @@ void write_ppu_memory(unsigned int address,unsigned char data) {
 
         /* palette mirror */
         if(ppu_addr == 0x3f10) {
-            ppu_memory[0x3f00] = data;
+            PPU_Memory[0x3f00] = data;
         }
 
         ppu_addr_tmp = ppu_addr;
@@ -220,8 +202,8 @@ void write_ppu_memory(unsigned int address,unsigned char data) {
         return;
     }
 
-    /* transfer 256 bytes of memory into sprite_memory */
-    if(address == 0x4014) {memcpy(sprite_memory, memory + 0x100 * data, 256);}
+    /* transfer 256 bytes of memory into SPRITE_Memory */
+    if(address == 0x4014) {memcpy(SPRITE_Memory, memory + 0x100 * data, 256);}
 
     return;
 }
@@ -239,7 +221,7 @@ void render_scanline(int scanline) {
 
     //Desenha Background e sprites
    // if (sprite_on) {render_sprite(scanline, true);} // Disable Speed Issues
-    if (background_on && (skipframe == 0)) {render_background(scanline);}
+    if (background_on && (skipFrame == 0)) {render_background(scanline);}
     if (sprite_on) {render_sprite(scanline, false);}
 
     if((loopyV & 0x7000) == 0x7000) { /* subtile y_offset == 7 */
@@ -384,8 +366,8 @@ void render_background(int scanline) {
                             if (tileyoffset == 0) {
                                     int tiley;
                                     for(tiley = 0; tiley < 8; tiley++) { //Desenho padrão de sprite 2BPP 8x8
-                                            unsigned char lowbyte = ppu_memory[bgtileoffset + tiley];
-                                            unsigned char highbyte = ppu_memory[bgtileoffset + tiley + 8];
+                                            unsigned char lowbyte = PPU_Memory[bgtileoffset + tiley];
+                                            unsigned char highbyte = PPU_Memory[bgtileoffset + tiley + 8];
                                        
                                             int curcol;
                                             for(curcol = 0; curcol <= offset; curcol++) {
@@ -398,14 +380,14 @@ void render_background(int scanline) {
                                                     if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                                                     if (highbyte & fPix) {pcolor += 2;}
                                                     if ((pcolor & 0x3) != 0) {
-                                                            draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                                            draw_pixel(tilex - curcol, scanline, PPU_Memory[0x3F00 + (pcolor | bgpal)]);
                                                     }
                                             }
                                             if (tilex <= 61183) {tilex += 256;}
                                     }
                             } else {
-                                    unsigned char lowbyte = ppu_memory[bgtileoffset + tileyoffset];
-                                    unsigned char highbyte = ppu_memory[bgtileoffset + tileyoffset + 8];
+                                    unsigned char lowbyte = PPU_Memory[bgtileoffset + tileyoffset];
+                                    unsigned char highbyte = PPU_Memory[bgtileoffset + tileyoffset + 8];
                                
                                     int curcol;
                                     for(curcol = 0; curcol <= offset; curcol++) {
@@ -418,7 +400,7 @@ void render_background(int scanline) {
                                             if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                                             if (highbyte & fPix) {pcolor += 2;}
                                             if ((pcolor & 0x3) != 0) {
-                                                    draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                                    draw_pixel(tilex - curcol, scanline, PPU_Memory[0x3F00 + (pcolor | bgpal)]);
                                               }
                                     }
                             }
@@ -448,8 +430,8 @@ void render_background(int scanline) {
                             if (tileyoffset == 0) {
                                     int tiley;
                                     for(tiley = 0; tiley < 8; tiley++) { //Desenho padrão de sprite 2BPP 8x8
-                                            unsigned char lowbyte = ppu_memory[bgtileoffset + tiley];
-                                            unsigned char highbyte = ppu_memory[bgtileoffset + tiley + 8];
+                                            unsigned char lowbyte = PPU_Memory[bgtileoffset + tiley];
+                                            unsigned char highbyte = PPU_Memory[bgtileoffset + tiley + 8];
                                        
                                             int curcol;
                                             for(curcol = offset; curcol < 8; curcol++) {
@@ -462,14 +444,14 @@ void render_background(int scanline) {
                                                     if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                                                     if (highbyte & fPix) {pcolor += 2;}
                                                     if ((pcolor & 0x3) != 0) {
-                                                            draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                                            draw_pixel(tilex - curcol, scanline, PPU_Memory[0x3F00 + (pcolor | bgpal)]);
                                                     }
                                             }
                                             if (tilex <= 61183) {tilex += 256;}
                                     }
                             } else {
-                                    unsigned char lowbyte = ppu_memory[bgtileoffset + tileyoffset];
-                                    unsigned char highbyte = ppu_memory[bgtileoffset + tileyoffset + 8];
+                                    unsigned char lowbyte = PPU_Memory[bgtileoffset + tileyoffset];
+                                    unsigned char highbyte = PPU_Memory[bgtileoffset + tileyoffset + 8];
                                
                                     int curcol;
                                     for(curcol = offset; curcol < 8; curcol++) {
@@ -482,7 +464,7 @@ void render_background(int scanline) {
                                             if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                                             if (highbyte & fPix) {pcolor += 2;}
                                             if ((pcolor & 0x3) != 0) {
-                                                    draw_pixel(tilex - curcol, scanline, ppu_memory[0x3F00 + (pcolor | bgpal)]);
+                                                    draw_pixel(tilex - curcol, scanline, PPU_Memory[0x3F00 + (pcolor | bgpal)]);
                                             }
                                     }
                             }
@@ -494,10 +476,10 @@ void render_background(int scanline) {
 void render_sprite(int scanline, bool foreground) {
     int currspr;
     for (currspr = 252; currspr >= 0; currspr-=4) {
-        int spry = sprite_memory[currspr] + 1;
-        int tileindex = sprite_memory[currspr + 1];
-        int attr = sprite_memory[currspr + 2];
-        int sprx = sprite_memory[currspr + 3];
+        int spry = SPRITE_Memory[currspr] + 1;
+        int tileindex = SPRITE_Memory[currspr + 1];
+        int attr = SPRITE_Memory[currspr + 2];
+        int sprx = SPRITE_Memory[currspr + 3];
         register int fPix = 0;
         int ptaddr = 0;
         if(sprite_addr_hi) {ptaddr = 0x1000;}
@@ -517,8 +499,8 @@ void render_sprite(int scanline, bool foreground) {
                 if (!vflip) {scan_to_draw = scanline - spry;} else {scan_to_draw = spry + 7 - scanline;}
 
                 int sproffset = ptaddr + (tileindex * 16);
-                unsigned char lowbyte = ppu_memory[sproffset + scan_to_draw];
-                unsigned char highbyte = ppu_memory[sproffset + scan_to_draw + 8];
+                unsigned char lowbyte = PPU_Memory[sproffset + scan_to_draw];
+                unsigned char highbyte = PPU_Memory[sproffset + scan_to_draw + 8];
                 int currpix;
                 if (!hflip) {
                     sprx += 7;
@@ -531,7 +513,7 @@ void render_sprite(int scanline, bool foreground) {
                         if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                         if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
-                            draw_pixel(sprx - currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
+                            draw_pixel(sprx - currpix, scanline, PPU_Memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
                         }
                     }
@@ -545,7 +527,7 @@ void render_sprite(int scanline, bool foreground) {
                         if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                         if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
-                            draw_pixel(sprx + currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
+                            draw_pixel(sprx + currpix, scanline, PPU_Memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
                         }
                     }
@@ -561,8 +543,8 @@ void render_sprite(int scanline, bool foreground) {
                     scan_to_draw -= 8;
                     if (tileindex % 2 == 0) {sproffset = ((tileindex + 1) << 4);} else {sproffset = 0x1000 + (tileindex << 4);}
                 }
-                unsigned char lowbyte = ppu_memory[sproffset + scan_to_draw];
-                unsigned char highbyte = ppu_memory[sproffset + scan_to_draw + 8];
+                unsigned char lowbyte = PPU_Memory[sproffset + scan_to_draw];
+                unsigned char highbyte = PPU_Memory[sproffset + scan_to_draw + 8];
                 int currpix;
                 if (!hflip) {
                     sprx += 7;
@@ -575,7 +557,7 @@ void render_sprite(int scanline, bool foreground) {
                         if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                         if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
-                            draw_pixel(sprx - currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
+                            draw_pixel(sprx - currpix, scanline, PPU_Memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
                         }
                     }
@@ -590,7 +572,7 @@ void render_sprite(int scanline, bool foreground) {
                         if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                         if (highbyte & fPix) pcolor += 2;
                         if ((pcolor & 0x3) != 0) {
-                            draw_pixel(sprx + currpix, scanline, ppu_memory[0x3F00 + (pcolor | sprpal)]);
+                            draw_pixel(sprx + currpix, scanline, PPU_Memory[0x3F00 + (pcolor | sprpal)]);
                             if (currspr == 0) {ppu_status |= 0x40;} //Sprite 0 Hit Flag
                         }
                     }
@@ -602,7 +584,7 @@ void render_sprite(int scanline, bool foreground) {
 
 /* Update and Clear the background */
 void update_screen() {
-    int nescolor = ppu_memory[0x3f00];
+    int nescolor = PPU_Memory[0x3f00];
     int x;
 
     u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
