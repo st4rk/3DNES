@@ -21,11 +21,9 @@ extern u32 loopyT;
 extern u32 loopyV;
 extern u32 loopyX;
 
-extern u32* PPU_TopScreen;
-
 extern void init_ppu();
 extern void show_gfxcache();
-extern void write_ppu_memory(u32 address,u8 data);
+extern void write_ppu_memory(unsigned int address,unsigned char data);
 extern void render_scanline(int scanline);
 extern void render_background(int scanline);
 extern void render_sprite(int scanline,bool foreground);

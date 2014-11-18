@@ -1,17 +1,16 @@
-#include <3ds.h>
 
 extern char romfn[256];
 
-extern u8 romcache[1048576];
+extern unsigned char romcache[1048576];
 
-extern u8 ppu_memory[16384];
-extern u8 sprite_memory[256];
+extern unsigned char ppu_memory[16384];
+extern unsigned char sprite_memory[256];
 
-extern u32 pad1_data;
+extern unsigned int pad1_data;
 
 extern int CPU_is_running;
 extern int pause_emulation;
-extern u8 skipframe;
+extern unsigned char skipframe;
 
 /* SRAM Save */
 extern void load_state();

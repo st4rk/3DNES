@@ -10,7 +10,7 @@
 #include "ppu.h"
 #include "input.h"
 #include "functions.h"
-#include "test_vsh_shbin.h"
+
 
 /* included mappers */
 #include "utils.h"
@@ -21,60 +21,46 @@
 #include "mmc5.h"	// 5
 #include "aorom.h"	// 7
 #include "mapper79.h"	// 79
-/* ctrulib */
+ 
+/* CTR-LIB */
 #include <3ds.h>
-
-/* PICA200 Shader */
-DVLB_s* shader;
+#include <3ds/gfx.h>
 
 char romfn[256];
 
-/* cache the rom in memory to access the data quickly */
-u8 romcache[1048576];
-u8 ppu_memory[16384];
-u8 sprite_memory[256];
+extern int show_menu;
 
-/* JoyPad Data */
-u32 pad1_data;
+/* cache the rom in memory to access the data quickly */
+unsigned char romcache[1048576];
+unsigned char ppu_memory[16384];
+unsigned char sprite_memory[256];
+
+/* PAD 1 Data */
+unsigned int pad1_data;
 int pad1_readcount = 0;
 
 /* Tick per Line */
 int line_ticks = 114;
 
-/* 1 = CPU Running, 0 = CPU Paused */
+int in_emulation = 1;
+
 int CPU_is_running = 1;
 int pause_emulation = 0;
 
-/* 1 = Start Menu, 0 = In Game */
 int inMenu = 1;
 
-/* 1 = Enable Sprite, 0 = Disable Sprite */
 int enable_background = 1;
 int enable_sprites = 1;
 
-/* Frameskip Emulation */
-u8 frameskip = 0;
-u8 skipframe = 0;
+unsigned char frameskip = 2;
+unsigned char skipframe = 0;
 
-/* romName */
 char rom_name[48];
-/* romSize */
+
 long romlen;
+Handle fsuHandle;
 
-extern int show_menu;
-
-
-/**************************************************************************************/
-								/* GPU Commands and Variables */
-
-u32* gpuOut  = (u32*) 0x1F119400;
-u32* gpuDOut = (u32*) 0x1F370800;
-u32* gpuCmd;
-u32* TopScreenTexture;
-
-extern u32* gxCmdBuf;
-extern u32* PPU_TopScreen;
-
+u8 in3D = 0;
 
 
 /*************************************************************************************/
@@ -387,11 +373,13 @@ void NES_Menu() {
 			updateMenu();
 			NES_drawConfiguration();
 			NES_ConfigurationMenu();
+			updateBottomScreen();
 			check_joypad();
 		} else {
 			updateMenu();
 			NES_DrawFileList();
 			NES_CurrentFileUpdate();
+			updateBottomScreen();
 			check_joypad();
 		}
 		
@@ -403,11 +391,6 @@ void NES_Menu() {
 
 /* exitAPP */
 void exitAPP() {
-	/* Free Allocation */
-	end_ppu();
-	linearFree (gpuCmd);
-	linearFree (TopScreenTexture);
-
 	fsExit();
 	hidExit();
 	gfxExit();
@@ -710,7 +693,6 @@ void emu_start() {
 
 	if(SRAM == 1) {
 		open_sav();
-	
 	}
 
 	/* Reset 6502 CPU */
@@ -723,88 +705,30 @@ void emu_start() {
 
 }
 
-
-void renderScreen() {
-    /*
-    There is a so many things i need understand here, so probably there is wrong code 
-    or useless code here 
-    */
-
-    /* General Setup */
-    GPU_SetViewport  ((u32*)osConvertVirtToPhys((u32)gpuDOut),(u32*)osConvertVirtToPhys((u32)gpuOut),0 ,0 ,240 * 2, 400);
-
-    GPU_DepthRange    (-1.0f, 0.0f);
-    GPU_SetFaceCulling(GPU_CULL_BACK_CCW);
-    GPU_SetStencilTest(false, GPU_ALWAYS, 0x00);
-    GPU_SetDepthTest  (true, GPU_GREATER, 0x1F);
-
-    /* unknown */
-    GPUCMD_AddSingleParam(0x00010062, 0x00000000); //param always 0x0 according to code
-    GPUCMD_AddSingleParam(0x000F0118, 0x00000000);
-
-    /* Setup Shader */
-    SHDR_UseProgram(shader, 0x0);
-
-    /* unknown 2 */
-    GPUCMD_AddSingleParam(0x000F0100, 0x00E40100);
-    GPUCMD_AddSingleParam(0x000F0101, 0x01010000);
-    GPUCMD_AddSingleParam(0x000F0104, 0x00000010);
-
-    /* Texturing Stuff */
-    GPUCMD_AddSingleParam(0x0002006F, 0x00000100);
-    GPUCMD_AddSingleParam(0x000F0080, 0x00011001); //enables/disables texturing
-
-    /* TextEnv */
-    GPU_SetTexEnv(3, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00000000);
-    GPU_SetTexEnv(4, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00000000);
-    GPU_SetTexEnv(5, GPU_TEVSOURCES(GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR), GPU_TEVSOURCES(GPU_TEXTURE0, GPU_PRIMARY_COLOR, GPU_PRIMARY_COLOR),
-        GPU_TEVOPERANDS(0,0,0), GPU_TEVOPERANDS(0,0,0), GPU_MODULATE, GPU_MODULATE, 0xFFFFFFFF);
-
-    /* Texturing Stuff */
-    GPU_SetTexture((u32*)osConvertVirtToPhys((u32)TopScreenTexture), 256, 256, 0x6, GPU_RGBA8);
-
-    GPU_DrawArray(GPU_TRIANGLES, 2 * 3);
-}
-
-void mainLoop() {
+void start_emulation() {
 	int scanline = 0;
 	APP_STATUS status;
-	
-	u32 gpuCmdSize = 0x40000;
-	gpuCmd = (u32*) linearAlloc (gpuCmdSize * 4);
-
-	GPU_Reset(gxCmdBuf, gpuCmd, gpuCmdSize);
-
-	/* Alloc TopScreen Texture */
-
-	TopScreenTexture = (u32*) linearAlloc(256 * 512 * 3);
 
 	sdmcArchive=(FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 	FSUSER_OpenArchive(NULL, &sdmcArchive);
 
 	NES_ROMLIST();
 
-	/* Shader Instruction */
-	shader = SHDR_ParseSHBIN((u32*)test_vsh_shbin, test_vsh_shbin_size);
-
-	GX_SetMemoryFill(gxCmdBuf, (u32*)gpuOut, 0x404040FF, (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
-	gfxSwapBuffersGpu();
-	NES_StartGame();
-
 	while((status=aptGetStatus())!=APP_EXITING) {
-		
+
 		if(status==APP_RUNNING){
-			ppu_status = 0;
+				ppu_status = 0;
 
 	        if(skipframe > frameskip)
 				skipframe = 0;
 
-				GPUCMD_SetBuffer(gpuCmd, gpuCmdSize, 0);
-
-		/*	if(inMenu == 1){
+			if(inMenu == 1){
 				NES_Menu();
 			}else {
-		*/
+					
+				if(skipframe == 0)
+					update_screen();
+
 				for(scanline = 0; scanline < 262; scanline++) { //262 scanlines?
 
 			            if (MAPPER == 5) mmc5_hblank(scanline); //MMC5 IRQ
@@ -821,26 +745,11 @@ void mainLoop() {
 					}
 
 
-				skipframe++;
+					skipframe++;
 
-				check_joypad();
+					check_joypad();
 
-				GX_SetDisplayTransfer(gxCmdBuf, (u32*)PPU_TopScreen, 0x02000100, (u32*)TopScreenTexture, 0x02000100, 0x3302);
-				gspWaitForPPF();
-				
-				renderScreen();
-				GSPGPU_FlushDataCache(NULL, (u8*)PPU_TopScreen, 256 * 512 * 3);
-
-				GPUCMD_Finalize();
-				GPUCMD_Run(gxCmdBuf);
-				gspWaitForP3D();
-				
-				GX_SetDisplayTransfer(gxCmdBuf, (u32*)gpuOut, 0x019001E0, (u32*)gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL), 0x019001E0, 0x01001000);
-				gspWaitForPPF();
-
-				/* Work like memset */
-				GX_SetMemoryFill(gxCmdBuf, (u32*)gpuOut, 0x253040FF, (u32*)&gpuOut[0x2EE00], 0x201, (u32*)gpuDOut, 0x00000000, (u32*)&gpuDOut[0x2EE00], 0x201);
-				gspWaitForPSC0();
+			    }
 
 			} else if(status == APP_SUSPENDING) {
 				aptReturnToMenu();
@@ -849,10 +758,14 @@ void mainLoop() {
 			}
 
 		gspWaitForVBlank();
+		gfxSwapBuffers();
+		gfxFlushBuffers();
+
 	}
 
 
 	exitAPP();
+	in_emulation = 0;
 	return 0;
 }
 
@@ -872,22 +785,19 @@ void reset_emulation() {
 	start_emulation();
 }
 
-int start_emulation() {
+int start_emu() {
 	srvInit();	
 	fsInit();
 	aptInit();
 	gfxInit();
 	hidInit(NULL);
 	aptSetupEventHandler();
-
-	/* Initialize GPU */
-	GPU_Init(NULL);
+	//srvGetServiceHandle(&fsuHandle, "fs:USER");
 
 
-	/* Clear SRAM */
 	SRAM = 0; 
 
-	mainLoop();
+	start_emulation();
 
 	return 0;
 }

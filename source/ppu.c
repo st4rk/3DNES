@@ -1,12 +1,4 @@
-/*
-@ -----------------------------------------------------------------
-@  3DNES PPU - Written by St4rk and gdkChan
-@  Date: 18/10/2014
-@  3DNES é um emulador de Nintendo Entertainment System para 3DS
-@  esse é um projeto open-source, você pode modificar e utilizar
-@  os arquivos para estudo, desde que mantenha os devidos créditos
-@ -----------------------------------------------------------------
-*/
+
 
 #include <string.h>
 #include <stdio.h>
@@ -67,11 +59,13 @@ extern int inMenu;
 /* used to export the current scanline for the debugger */
 int current_scanline;
 
-/* PPU TopScreen Buffer */
-u32* PPU_TopScreen;
+#define topFrameBufferHeight 240
+#define topFrameBufferWidth  400
 
-/* Initialize PPU with some optimizations */
+u8 topFrameBuffer[0x46500];
+
 void init_ppu() {
+    //Otimização para renderizar mais rápido
     int b1;
     int b2;
     int X;
@@ -87,17 +81,9 @@ void init_ppu() {
         }
     }
 
-    /* Alloc Buffer to TopScreen */
-    PPU_TopScreen = (u32*) linearAlloc (256 * 512 * 3);
-
-
 }
 
-/* Clear PPU Allocation */
-void end_ppu() { linearFree (PPU_TopScreen); }
-
-
-void write_ppu_memory(u32 address, u8 data) {
+void write_ppu_memory(unsigned int address,unsigned char data) {
 
     if(address == 0x2000) {
         ppu_addr_tmp = data;
@@ -279,15 +265,14 @@ void draw_pixel(int x, int y, int nescolor) {
     if ((x>=256) || (x<0)) {return;}
     if ((y>=240) || (y<0)) {return;}
 
-    y = 240 - y;
-    x = 72  + x;
-    u32 v = (y + x * 240) * 3;
+    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    y = 240-y;
+    x = 72+x;
+    u32 v=(y+x*240)*3;
    
-    PPU_TopScreen[v  ] = palette[nescolor].b;
-    PPU_TopScreen[v+1] = palette[nescolor].g;
-    PPU_TopScreen[v+2] = palette[nescolor].r;
-
-    memset(PPU_TopScreen, 0x363636, 256 * 512 * 3);
+    framebuffer[v]=palette[nescolor].b;
+    framebuffer[v+1]=palette[nescolor].g;
+    framebuffer[v+2]=palette[nescolor].r;
 
 }
 
@@ -297,7 +282,7 @@ void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
 
 
     /* don't fail on attempts to draw outside the screen. */
-   /* u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
     y = 240-y;
     x = 72+x;
@@ -306,7 +291,8 @@ void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
     framebuffer[v]=b;
     framebuffer[v+1]=g;
     framebuffer[v+2]=r;
-    */
+
+
 
 }
 
@@ -348,8 +334,8 @@ void draw_image_24bpp(int sx, int sy, int w, int h, char img[]) {
     }
 }
 
+/* Draw Select Bar */
 
-/* Menu Select Bar */
 void draw_select_bar(int x, int y) {
   //  draw_image_24bpp(x, y, 392, 12, select_bar);
 }
@@ -614,29 +600,35 @@ void render_sprite(int scanline, bool foreground) {
     }
 }
 
-/* Update and clear the background */
+/* Update and Clear the background */
 void update_screen() {
     int nescolor = ppu_memory[0x3f00];
     int x;
 
-  /*  u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     for(x = 51840; x < 236160; x+=3){
         bufAdr[x]=palette[nescolor].b;
         bufAdr[x+1]=palette[nescolor].g;
         bufAdr[x+2]=palette[nescolor].r;
     }
-  */
+
   
+}
+
+void updateBottomScreen() {
+//    swapBottomBuffers();
+//    copyBottomBuffer();
+
+//    memset(BottomBuffer, imagem, (320 * 240 * 3));
 }
 
 /* update menu image */
 void updateMenu() {
 
 
-/*    
     u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     memcpy(framebuffer, imagem, 0x46500);
-*/
+
 }
 
 
