@@ -1,6 +1,12 @@
 #include "FileSystem.h"
 #include "nesGlobal.h"
 
+
+u8 					*ROM_Cache;
+u8					*SRAM_Name;
+
+u32					 ROM_Size;
+
 /* Load Complete ROM LIST */
 void NES_LOADROMLIST() {
 	Handle romHandle;
@@ -24,7 +30,7 @@ void NES_LOADROMLIST() {
 	fileSystem.totalFiles = cont;
 	fileSystem.fileList = linearAlloc(cont);
 
-	FUSER_OpenDirecotyr(NULL, &romHandle, sdmcArchive, dirPath);
+	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
 	cont = 0;
 
@@ -89,13 +95,14 @@ void NES_LoadSelectedGame() {
 
 	/* Save File Name ! */
 	if (SRAM_Name != NULL) {
-		linaerFree(SRAM_Name);
+		linearFree(SRAM_Name);
 		SRAM_Name = linearAlloc(strlen(fileSystem.fileList[fileSystem.currFile]) - 4);
 		strncpy(SRAM_Name, fileSystem.fileList[fileSystem.currFile], strlen(fileSystem.fileList[fileSystem.currFile]) - 4);
 	}
 
 	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
 	FSFILE_GetSize(fileHandle, &ROM_Size);
+	ROM_Cache = linearAlloc(ROM_Size);
 	FSFILE_Read(fileHandle, &bytesRead, 0x0, (u32*)ROM_Cache, ROM_Size);
 	FSFILE_Close(fileHandle);
 

@@ -12,8 +12,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "nesMemory.h"
-#include "nesGlobal.h"
 #include "6502core.h"
 
 bool penalty_op, penalty_addr;

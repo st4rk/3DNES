@@ -7,30 +7,30 @@
 #include "6502core.h"
 
 
-u32 ppu_control1;
-u32 ppu_control2;
-u32 ppu_addr;
-u32 ppu_addr_h;
-u32 ppu_addr_tmp;
-u32 ppu_status;
-u32 ppu_status_tmp;
-u32 ppu_bgscr_f;
+extern u32 ppu_control1;
+extern u32 ppu_control2;
+extern u32 ppu_addr;
+extern u32 ppu_addr_h;
+extern u32 ppu_addr_tmp;
+extern u32 ppu_status;
+extern u32 ppu_status_tmp;
+extern u32 ppu_bgscr_f;
 
-int current_scanline;
+extern int current_scanline;
 
-u32 sprite_address;
+extern u32 sprite_address;
 
-u32 loopyT;
-u32 loopyV;
-u32 loopyX;
+extern u32 loopyT;
+extern u32 loopyV;
+extern u32 loopyX;
 
-void init_ppu();
-void show_gfxcache();
-void write_ppu_memory(unsigned int address,unsigned char data);
-void render_scanline(int scanline);
-void render_background(int scanline);
-void render_sprite(int scanline,bool foreground);
-void update_screen();
-void do_mirror(int type);
-void N3DS_DrawPixel();
-void N3DS_SwapBuffers();
+extern void init_ppu();
+extern void show_gfxcache();
+extern void write_ppu_memory(unsigned int address,unsigned char data);
+extern void render_scanline(int scanline);
+extern void render_background(int scanline);
+extern void render_sprite(int scanline,bool foreground);
+extern void update_screen();
+extern void do_mirror(int type);
+extern void N3DS_DrawPixel();
+extern void N3DS_SwapBuffers();

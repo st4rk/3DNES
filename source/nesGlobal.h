@@ -47,22 +47,22 @@
 ** All global variables will be declared here **
 ************************************************/
 
-u8 					*ROM_Cache;
-u8 					*PPU_Memory;
-u8 					*SPRITE_Memory;
-u8					*SRAM_Name;
-u8					frameSkip;
-u8					skipFrame;
-u8					ROM_Title[128];
+extern u8 					*ROM_Cache;
+extern u8 					*PPU_Memory;
+extern u8 					*SPRITE_Memory;
+extern u8					*SRAM_Name;
+extern u8					frameSkip;
+extern u8					skipFrame;
+extern u8					ROM_Title[128];
 
-u32 				PAD1_Data;
-u32					ROM_Size;
-u32				    line_ticks = 114;
+extern u32 					PAD1_Data;
+extern u32					ROM_Size;
+extern u32				    line_ticks;
 
-bool				CPU_Running;
-bool 				PAUSE_Emulation;
-bool				ENABLE_Background;
-bool				ENABLE_Sprite;
-bool				inGame;
+extern bool					CPU_Running;
+extern bool 				PAUSE_Emulation;
+extern bool					ENABLE_Background;
+extern bool					ENABLE_Sprite;
+extern bool					inGame;
 
 #endif
