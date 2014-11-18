@@ -41,10 +41,17 @@ int mirror[4];
 /* used to export the current scanline for the debugger */
 int current_scanline;
 
-#define topFrameBufferHeight 240
-#define topFrameBufferWidth  400
 
-u8 topFrameBuffer[0x46500];
+/* Screen FrameBuffer */
+u8* topLeftFrameBuffer 	= 0;
+u8* topRightFrameBuffer = 0;
+u8* bottomFrameBuffer   = 0;
+
+void drawBuffers() {
+	gfxFlushBuffers();
+    gfxSwapBuffers();
+	topLeftFrameBuffer  = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+}
 
 void init_ppu() {
     //Otimização para renderizar mais rápido
@@ -62,6 +69,11 @@ void init_ppu() {
             }
         }
     }
+
+
+    topLeftFrameBuffer  = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    topRightFrameBuffer = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
+   	bottomFrameBuffer   = gfxGetFramebuffer(GFX_BOTTOM, GFX_BOTTOM, NULL, NULL);
 
 }
 
@@ -247,7 +259,7 @@ void draw_pixel(int x, int y, int nescolor) {
     if ((x>=256) || (x<0)) {return;}
     if ((y>=240) || (y<0)) {return;}
 
-    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+ /*   u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
@@ -255,26 +267,20 @@ void draw_pixel(int x, int y, int nescolor) {
     framebuffer[v]=palette[nescolor].b;
     framebuffer[v+1]=palette[nescolor].g;
     framebuffer[v+2]=palette[nescolor].r;
-
+	*/
 }
 
 
 /* draw pixel RGB Format */
 void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
 
-
-    /* don't fail on attempts to draw outside the screen. */
-    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
 
-    framebuffer[v]=b;
-    framebuffer[v+1]=g;
-    framebuffer[v+2]=r;
-
-
+    topLeftFrameBuffer[v]	=b;
+    topLeftFrameBuffer[v+1]	=g;
+    topLeftFrameBuffer[v+2]	=r;
 
 }
 
@@ -587,30 +593,31 @@ void update_screen() {
     int nescolor = PPU_Memory[0x3f00];
     int x;
 
-    u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+
+    gfxFlushBuffers();
+    gfxSwapBuffers();
+
+
+    topLeftFrameBuffer  = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    topRightFrameBuffer = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
+   	bottomFrameBuffer   = gfxGetFramebuffer(GFX_BOTTOM, GFX_BOTTOM, NULL, NULL);
+
+  /* DISABLE FOR TEST 
     for(x = 51840; x < 236160; x+=3){
         bufAdr[x]=palette[nescolor].b;
         bufAdr[x+1]=palette[nescolor].g;
         bufAdr[x+2]=palette[nescolor].r;
     }
-
+   */
   
-}
-
-void updateBottomScreen() {
-//    swapBottomBuffers();
-//    copyBottomBuffer();
-
-//    memset(BottomBuffer, imagem, (320 * 240 * 3));
 }
 
 /* update menu image */
 void updateMenu() {
 
+    memcpy(topLeftFrameBuffer, imagem, 0x46500);
 
-    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-    memcpy(framebuffer, imagem, 0x46500);
-
+    drawBuffers();
 }
 
 

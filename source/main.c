@@ -47,6 +47,7 @@ void INIT_3DS() {
 	gfxInit();
 	hidInit(NULL);
 	aptSetupEventHandler();
+	init_ppu();
 
 	ROM_Cache 			= NULL;
 	PPU_Memory 		    = linearAlloc(16384);
@@ -108,7 +109,6 @@ void INIT_EMULATION() {
 
 	CPU_reset();
 	RESET_INPUT();
-	init_ppu();
 	do_mirror(MIRRORING);
 
 	CPU_Running = true;
@@ -184,6 +184,7 @@ void NES_MAINLOOP() {
 		switch (status) {
 			case APP_RUNNING:
 				if (!inGame) {
+					updateMenu();
 					NES_drawROMLIST();
 					NES_drawConfigurationMenu();
 				} else {
