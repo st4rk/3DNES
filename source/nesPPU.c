@@ -609,12 +609,8 @@ void update_screen() {
 
 /* update menu image */
 void updateMenu() {
-
-    u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-
+    //u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     memcpy(topLeftFrameBuffer, imagem, 0x46500);
-    gfxFlushBuffers();
-    gfxSwapBuffers();
 }
 
 
