@@ -189,8 +189,14 @@ void NES_MAINLOOP() {
 		switch (status) {
 			case APP_RUNNING:
 				if (!inGame) {
+<<<<<<< HEAD
 					NES_MainMenu();
+=======
+>>>>>>> origin/master
 					updateMenu();
+					NES_drawConfigurationMenu();
+					NES_drawROMLIST();
+					drawBuffers();
 				} else {
 
 					if (!CPU_Running)
