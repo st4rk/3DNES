@@ -55,6 +55,8 @@ void NES_ConfigurationMenu();
 void NES_CurrentFileUpdate();
 /* Load Game on ROM */
 void NES_LoadSelectedGame();
+/* Main Menu of 3DNES */
+void NES_MainMenu();
 
 /* FS_String Conc */
 void FS_StringConc(char* dst, char* src1, char* src2);

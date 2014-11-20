@@ -50,7 +50,9 @@ void NES_LOADROMLIST() {
 void NES_drawROMLIST() {
 	int i = 0;
 
-	draw_select_bar(-67, (fileSystem.cFile * 15) + 53);
+	//draw_select_bar(-67, (fileSystem.cFile * 15) + 53);
+
+	draw_string_c(25, "FileList Test:");
 
 	for(i = 0; i < fileSystem.totalFiles; i++) {
 		draw_string_c(55 + (i * 15), fileSystem.fileList[i + fileSystem.sFile]);
@@ -269,6 +271,14 @@ void NES_CurrentFileUpdate() {
 			}
 		}
 
+}
+
+
+void NES_MainMenu() {
+	if (fileSystem.inMenu == 0)
+		NES_drawROMLIST();
+	else
+		NES_drawConfigurationMenu();
 }
 
 void unicode_to_char(char* dst, unsigned short *src) {
