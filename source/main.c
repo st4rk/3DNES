@@ -236,6 +236,7 @@ void NES_MAINLOOP() {
 			break;
 
 		}
+		
 		gspWaitForEvent(GSPEVENT_VBlank0, false);
 	}
 

@@ -28,7 +28,7 @@ void NES_LOADROMLIST() {
 
 	/* Save total of files */
 	fileSystem.totalFiles = cont;
-	fileSystem.fileList = linearAlloc(cont);
+	fileSystem.fileList = linearAlloc(cont * MAX_FILENAME_SIZE);
 
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
@@ -38,7 +38,7 @@ void NES_LOADROMLIST() {
 		u32 dataRead = 0;
 		FSDIR_Read(romHandle, &dataRead, 1, &dirStruct);
 		if(dataRead == 0) break;
-		strcpy(fileSystem.fileList[cont], dirStruct.name);
+		unicode_to_char(fileSystem.fileList[(MAX_FILENAME_SIZE * cont)], dirStruct.name);
 		cont++;
 	}
 
@@ -269,4 +269,13 @@ void NES_CurrentFileUpdate() {
 			}
 		}
 
+}
+
+void unicode_to_char(char* dst, unsigned short *src) {
+    int i = 0;
+    for (i = 0; i < 0x106; i++) {
+        if (src[i] == '\0') break;
+
+        dst[i] = (src[i] & 0x00FF);
+    }
 }

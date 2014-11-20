@@ -8,7 +8,7 @@
 #include <string.h>
 
 
-#define MAX_FILENAME_SIZE 0xFF
+#define MAX_FILENAME_SIZE 0x106
 
 
 FS_archive sdmcArchive;
