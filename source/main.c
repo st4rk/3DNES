@@ -189,13 +189,10 @@ void NES_MAINLOOP() {
 		switch (status) {
 			case APP_RUNNING:
 				if (!inGame) {
-<<<<<<< HEAD
-					NES_MainMenu();
-=======
->>>>>>> origin/master
 					updateMenu();
-					NES_drawConfigurationMenu();
-					NES_drawROMLIST();
+					//NES_drawConfigurationMenu();
+					//NES_drawROMLIST();
+					NES_MainMenu();
 					drawBuffers();
 				} else {
 
