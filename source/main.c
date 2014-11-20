@@ -189,11 +189,8 @@ void NES_MAINLOOP() {
 		switch (status) {
 			case APP_RUNNING:
 				if (!inGame) {
-					updateMenu();
-					//NES_drawConfigurationMenu();
-					//NES_drawROMLIST();
+					drawMenu();
 					NES_MainMenu();
-					drawBuffers();
 				} else {
 
 					if (!CPU_Running)
@@ -227,6 +224,8 @@ void NES_MAINLOOP() {
 					NES_CheckJoypad();
 
 				}
+				
+				drawBuffers();
 			break;
 
 			case APP_SUSPENDING:
@@ -239,7 +238,8 @@ void NES_MAINLOOP() {
 
 		}
 
-		gspWaitForEvent(GSPEVENT_VBlank0, false);
+		gspWaitForVBlank();
+		//gspWaitForEvent(GSPEVENT_VBlank0, false);
 	}
 
 }

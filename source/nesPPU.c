@@ -607,8 +607,8 @@ void update_screen() {
   
 }
 
-/* update menu image */
-void updateMenu() {
+/* draw menu image */
+void drawMenu() {
     u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 	memcpy(bufAdr, imagem, 0x46500);
 }
