@@ -26,7 +26,7 @@ extern u32 loopyX;
 
 extern void init_ppu();
 extern void show_gfxcache();
-extern void write_ppu_memory(unsigned int address,unsigned char data);
+extern void write_PPU_Memory(unsigned int address, unsigned char data);
 extern void render_scanline(int scanline);
 extern void render_background(int scanline);
 extern void render_sprite(int scanline,bool foreground);

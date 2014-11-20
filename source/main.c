@@ -5,7 +5,6 @@
 #include "nesPPU.h"
 #include "nesSystem.h"
 #include "nesLoadROM.h"
-#include "nesPPU.h"
 #include "6502core.h"
 
 
@@ -236,6 +235,8 @@ void NES_MAINLOOP() {
 				aptWaitStatusEvent();
 			break;
 
+			default:
+			break;
 		}
 
 		gspWaitForVBlank();
