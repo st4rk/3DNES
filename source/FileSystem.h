@@ -59,4 +59,7 @@ void NES_LoadSelectedGame();
 /* FS_String Conc */
 void FS_StringConc(char* dst, char* src1, char* src2);
 
+/* unicode_to_char */
+void unicode_to_char(char* dst, unsigned short *src);
+
 #endif

@@ -21,21 +21,21 @@
 #include "FileSystem.h"
 
 
-u8 					*PPU_Memory;
-u8 					*SPRITE_Memory;
-u8					frameSkip;
-u8					skipFrame;
+u8 	*PPU_Memory;
+u8 	*SPRITE_Memory;
+u8	frameSkip;
+u8	skipFrame;
 
-u32 				PAD1_Data;
-u32				    line_ticks = 114;
+u32 PAD1_Data;
+u32	line_ticks = 114;
 
-bool				CPU_Running;
-bool 				PAUSE_Emulation;
-bool				ENABLE_Background;
-bool				ENABLE_Sprite;
-bool				inGame;
+bool CPU_Running;
+bool PAUSE_Emulation;
+bool ENABLE_Background;
+bool ENABLE_Sprite;
+bool inGame;
 
-int 				PAD1_ReadCount = 0;
+int PAD1_ReadCount = 0;
 
 extern FS_archive sdmcArchive;
 
@@ -46,6 +46,7 @@ void INIT_3DS() {
 	aptInit();
 	gfxInit();
 	hidInit(NULL);
+	gfxSet3D(false);
 	aptSetupEventHandler();
 	init_ppu();
 
@@ -72,7 +73,7 @@ void INIT_FileSystem() {
 	/* INIT SDMC ARCHIVE */
 	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 	FSUSER_OpenArchive(NULL, &sdmcArchive);
-
+	fileSystem.inMenu = false;
 	NES_LOADROMLIST();
 }
 
@@ -81,10 +82,14 @@ void INIT_FileSystem() {
 void EXIT_3DS() {
 
 	/* Free All Linear Allocation */
-	linearFree (ROM_Cache);
+	if (ROM_Cache != NULL)
+		linearFree (ROM_Cache);
+	
 	linearFree (PPU_Memory);
 	linearFree (SPRITE_Memory);
-	linearFree (SRAM_Name);
+
+	if (SRAM_Name != NULL)
+		linearFree (SRAM_Name);
 
 	fsExit();
 	hidExit();
@@ -184,9 +189,9 @@ void NES_MAINLOOP() {
 		switch (status) {
 			case APP_RUNNING:
 				if (!inGame) {
-					updateMenu();
 					NES_drawROMLIST();
 					NES_drawConfigurationMenu();
+					updateMenu();
 				} else {
 
 					if (!CPU_Running)
@@ -231,6 +236,7 @@ void NES_MAINLOOP() {
 			break;
 
 		}
+		gspWaitForEvent(GSPEVENT_VBlank0, false);
 	}
 
 }

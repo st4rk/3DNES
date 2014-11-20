@@ -2,10 +2,10 @@
 #include "nesGlobal.h"
 
 
-u8 					*ROM_Cache;
-u8					*SRAM_Name;
+u8 *ROM_Cache;
+u8 *SRAM_Name;
 
-u32					 ROM_Size;
+u32	ROM_Size;
 
 /* Load Complete ROM LIST */
 void NES_LOADROMLIST() {

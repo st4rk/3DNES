@@ -48,9 +48,9 @@ u8* topRightFrameBuffer = 0;
 u8* bottomFrameBuffer   = 0;
 
 void drawBuffers() {
-	gfxFlushBuffers();
+    gfxFlushBuffers();
     gfxSwapBuffers();
-	topLeftFrameBuffer  = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+
 }
 
 void init_ppu() {
@@ -259,7 +259,7 @@ void draw_pixel(int x, int y, int nescolor) {
     if ((x>=256) || (x<0)) {return;}
     if ((y>=240) || (y<0)) {return;}
 
- /*   u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
@@ -267,20 +267,23 @@ void draw_pixel(int x, int y, int nescolor) {
     framebuffer[v]=palette[nescolor].b;
     framebuffer[v+1]=palette[nescolor].g;
     framebuffer[v+2]=palette[nescolor].r;
-	*/
+
 }
 
 
 /* draw pixel RGB Format */
 void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
 
+
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
 
-    topLeftFrameBuffer[v]	=b;
-    topLeftFrameBuffer[v+1]	=g;
-    topLeftFrameBuffer[v+2]	=r;
+    u8* topLeftFB=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+
+    topLeftFB[v]	=b;
+    topLeftFB[v+1]	=g;
+    topLeftFB[v+2]	=r;
 
 }
 
@@ -594,14 +597,6 @@ void update_screen() {
     int x;
 
 
-    gfxFlushBuffers();
-    gfxSwapBuffers();
-
-
-    topLeftFrameBuffer  = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-    topRightFrameBuffer = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
-   	bottomFrameBuffer   = gfxGetFramebuffer(GFX_BOTTOM, GFX_BOTTOM, NULL, NULL);
-
   /* DISABLE FOR TEST 
     for(x = 51840; x < 236160; x+=3){
         bufAdr[x]=palette[nescolor].b;
@@ -615,9 +610,11 @@ void update_screen() {
 /* update menu image */
 void updateMenu() {
 
-    memcpy(topLeftFrameBuffer, imagem, 0x46500);
+    u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
-    drawBuffers();
+    memcpy(topLeftFrameBuffer, imagem, 0x46500);
+    gfxFlushBuffers();
+    gfxSwapBuffers();
 }
 
 
