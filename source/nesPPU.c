@@ -55,21 +55,6 @@ void drawBuffers() {
 }
 
 void init_ppu() {
-    //Otimização para renderizar mais rápido
-    int b1;
-    int b2;
-    int X;
-    int c;
-
-    for (b1 = 0; b1 < 256; b1++) {
-        for (b2 = 0; b2 < 256; b2++) {
-            for (X = 0; X < 8; X++) {
-                if (b1 & (1 << X)) {c = 1;} else {c = 0;}
-                if (b2 & (1 << X)) {c += 2;}
-                color_lookup[b1 * 2048 + b2 * 8 + X] = c;
-            }
-        }
-    }
 
     /* Convert 24bpp to 16 bpp */
     _24bppTo16bpp();
@@ -280,13 +265,12 @@ void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
 
     y = 240-y;
     x = 72+x;
-    u32 v=(y+x*240)*3;
+    u32 v=(y+x*240)*2;
 
     u8* topLeftFB = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
-    topLeftFB[v]	=b;
-    topLeftFB[v+1]	=g;
-    topLeftFB[v+2]	=r;
+    topLeftFB[v]	= (b >> 3) + ((g & 0x1C) << 3);
+    topLeftFB[v+1]  = ((g & 0xE0) >> 5) + (r & 0xF8);
 
 }
 
@@ -613,8 +597,8 @@ void NES_ColorBackground() {
 
 /* draw menu image */
 void drawMenu() {
-//    u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-//	memcpy(bufAdr, imagem, 0x46500);
+    u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    memset(bufAdr, 0x0, 0x2EE00);
 }
 
 /* Clear Screen */

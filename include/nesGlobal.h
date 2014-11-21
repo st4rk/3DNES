@@ -66,5 +66,6 @@ extern bool 				PAUSE_Emulation;
 extern bool					ENABLE_Background;
 extern bool					ENABLE_Sprite;
 extern bool					inGame;
+extern bool                 VSYNC;
 
 #endif

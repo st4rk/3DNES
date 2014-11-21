@@ -8,6 +8,7 @@ u64	ROM_Size;
 FS_archive sdmcArchive;
 
 extern bool inGame;	
+extern bool VSYNC;
 extern u8	frameSkip;
 
 void unicodeToChar(char* dst, u16* src) {
@@ -82,7 +83,6 @@ void NES_drawROMLIST() {
 
 /* Draw Configuration Menu */
 void NES_drawConfigurationMenu() {
-	//draw_select_bar(-67, (fileSystem.cConfig * 15) + 70);
 	char gameFPS[18];
 
 
@@ -91,9 +91,16 @@ void NES_drawConfigurationMenu() {
 	draw_string(10, (fileSystem.cConfig* 15) + 70, "->");
 	draw_string_c(50, "Configuration Menu");
 	draw_string_c(73, gameFPS);
-	draw_string_c(88, "Background: ");
+	
+	if (VSYNC)
+		draw_string_c(88, "VSYNC: ENABLE");
+	else
+		draw_string_c(88, "VSYNC: DISABLE");
+
+
 	draw_string_c(103,"Sprites: ");
 	draw_string_c(118, "Exit and Start Game");
+
 }
 
 void FS_StringConc(char* dst, char* src1, char* src2) {
@@ -166,7 +173,7 @@ void NES_ConfigurationMenu() {
 					break;
 
 					case 1:
-						ENABLE_Background = 0;
+						VSYNC = false;
 					break;
 
 					case 2:
@@ -192,7 +199,7 @@ void NES_ConfigurationMenu() {
 					break;
 
 					case 1:
-						ENABLE_Background = 1;
+						VSYNC = true;
 					break;
 
 					case 2:
