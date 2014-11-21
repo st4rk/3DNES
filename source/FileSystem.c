@@ -8,7 +8,7 @@ u64	ROM_Size;
 FS_archive sdmcArchive;
 
 extern bool inGame;	
-
+extern u8	frameSkip;
 
 void unicodeToChar(char* dst, u16* src) {
     if(!src || !dst)return;
@@ -83,10 +83,14 @@ void NES_drawROMLIST() {
 /* Draw Configuration Menu */
 void NES_drawConfigurationMenu() {
 	//draw_select_bar(-67, (fileSystem.cConfig * 15) + 70);
+	char gameFPS[18];
 
-	draw_string(25, (fileSystem.cConfig* 15) + 70, "->");
+
+	sprintf(gameFPS, "FrameSkip: %d", frameSkip);
+
+	draw_string(10, (fileSystem.cConfig* 15) + 70, "->");
 	draw_string_c(50, "Configuration Menu");
-	draw_string_c(73, "FrameSkip: ");
+	draw_string_c(73, gameFPS);
 	draw_string_c(88, "Background: ");
 	draw_string_c(103,"Sprites: ");
 	draw_string_c(118, "Exit and Start Game");
