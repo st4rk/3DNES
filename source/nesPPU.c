@@ -41,11 +41,12 @@ int mirror[4];
 /* used to export the current scanline for the debugger */
 int current_scanline;
 
-
 /* Screen FrameBuffer */
 u8* topLeftFrameBuffer 	= 0;
 u8* topRightFrameBuffer = 0;
 u8* bottomFrameBuffer   = 0;
+
+extern u8 skipFrame;
 
 void drawBuffers() {
     gfxFlushBuffers();
@@ -592,17 +593,18 @@ void render_sprite(int scanline, bool foreground) {
     }
 }
 
-/* Update and Clear the background */
-void update_screen() {
+
+/* Clear background with correct palette */
+void NES_ColorBackground() {
     int nescolor = PPU_Memory[0x3f00];
     int x;
     
     u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
     for(x = 51840; x < 236160; x+=3){
-        bufAdr[x]=palette[nescolor].b;
-        bufAdr[x+1]=palette[nescolor].g;
-        bufAdr[x+2]=palette[nescolor].r;
+        bufAdr[x]   = palette[nescolor].b;
+        bufAdr[x+1] = palette[nescolor].g;
+        bufAdr[x+2] = palette[nescolor].r;
     }
 
   

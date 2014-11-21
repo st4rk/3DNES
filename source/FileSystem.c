@@ -120,14 +120,14 @@ void NES_LoadSelectedGame() {
 	/* concatenate strings */
 	FS_StringConc(ROM_DIR,  "/3DNES/ROMS/", fileSystem.fileList[fileSystem.currFile]);
 
-	/* Save File Name ! */
-	if (SRAM_Name != NULL) {
+	/* TODO: FIX IT
+	/*if (SRAM_Name != NULL) {
 		linearFree(SRAM_Name);
 		SRAM_Size = (strlen(fileSystem.fileList[fileSystem.currFile]) - 4);
 		SRAM_Name = linearAlloc(SRAM_Size);
 		strncpy((char*)SRAM_Name, fileSystem.fileList[fileSystem.currFile], SRAM_Size);
 	}
-
+	*/
 	
 	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
 	FSFILE_GetSize(fileHandle, &ROM_Size);

@@ -30,7 +30,7 @@ extern void write_PPU_Memory(unsigned int address, unsigned char data);
 extern void render_scanline(int scanline);
 extern void render_background(int scanline);
 extern void render_sprite(int scanline,bool foreground);
-extern void update_screen();
+extern void NES_ColorBackground();
 extern void do_mirror(int type);
 extern void N3DS_DrawPixel();
 extern void N3DS_SwapBuffers();
