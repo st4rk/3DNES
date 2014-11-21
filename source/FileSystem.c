@@ -111,12 +111,13 @@ void FS_StringConc(char* dst, char* src1, char* src2) {
 void NES_LoadSelectedGame() {
 	u32    bytesRead = 0;
 	u32    SRAM_Size = 0;
-
+	u32    ROMDIR_Size = (strlen("/3DNES/ROMS/") + strlen(fileSystem.fileList[fileSystem.currFile]) + 1);
 	Handle fileHandle;
 
 	/* Alloc ROM Directory */
-	char *ROM_DIR = linearAlloc(strlen("/3DNES/ROMS/") + strlen(fileSystem.fileList[fileSystem.currFile]) + 1);
+	char ROM_DIR[ROMDIR_Size];
 
+	memset(ROM_DIR, 0x0, ROMDIR_Size);
 	/* concatenate strings */
 	FS_StringConc(ROM_DIR,  "/3DNES/ROMS/", fileSystem.fileList[fileSystem.currFile]);
 
