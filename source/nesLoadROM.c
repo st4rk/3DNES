@@ -1,8 +1,8 @@
 #include "nesLoadROM.h"
 
 
-u8 					ROM_Header[15];
-u8					ROM_Title[128];
+u8 	ROM_Header[15];
+u8	ROM_Title[128];
 
 int NES_LoadROM() {
 	int i = 0;

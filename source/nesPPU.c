@@ -46,6 +46,8 @@ u8* topLeftFrameBuffer 	= 0;
 u8* topRightFrameBuffer = 0;
 u8* bottomFrameBuffer   = 0;
 
+u8 bottomCounter = 0;
+
 extern u8 skipFrame;
 
 void drawBuffers() {
@@ -65,7 +67,7 @@ void init_ppu() {
 
 }
 
-void write_PPU_Memory(unsigned int address,unsigned char data) {
+void write_PPU_Memory(u32 address,u8 data) {
 
     if(address == 0x2000) {
         ppu_addr_tmp = data;
@@ -297,6 +299,56 @@ void draw_string(int sx, int sy, unsigned char str[]) {
         sx += 8;
     }
 }
+
+void drawPixelBottom(int x, int y, u8 r, u8 g, u8 b) {
+
+    u8* BottomFB = gfxGetFramebuffer(GFX_BOTTOM, GFX_BOTTOM, NULL, NULL);
+
+    if (bottomCounter > 10)  {
+        memset(BottomFB, 0x0, 0x25800);
+        bottomCounter = 0;
+    }
+
+
+    y = 240-y;
+    x = 72+x;
+    u32 v=(y+x*240)*2;
+
+    BottomFB[v]    = (b >> 3) + ((g & 0x1C) << 3);
+    BottomFB[v+1]  = ((g & 0xE0) >> 5) + (r & 0xF8);
+
+    bottomCounter++;
+}
+
+
+/* Draw String */
+void drawStringBottom(int sx, unsigned char str[]) {
+
+/*    int sy = (bottomCounter * 8);
+
+    int i;
+    for (i = 0; i < strlen(str); i++) {
+        int fntnum = (str[i] - 32) & 0xFF;
+        int y;
+        for (y = 0; y < 8; y++) {
+            int currbyte = fonts[(fntnum * 8) + y];
+
+            //Desenha sprite de 1BPP
+            int x;
+            int mult = 0x80;
+            for(x = 0; x < 8; x++) {
+                if ((currbyte & mult) == mult) {
+                    drawPixelBottom(sx + x, sy + y, 0xFF, 0xFF, 0xFF);
+                    drawPixelBottom(sx + x, sy + y + 1, 0, 0, 0); //Sombra
+                }
+                mult /= 2;
+            }
+        }
+        sx += 8;
+    }
+    */
+}
+
 
 
 void draw_image_24bpp(int sx, int sy, int w, int h, char img[]) {
@@ -599,12 +651,6 @@ void NES_ColorBackground() {
 void drawMenu() {
     u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
     memset(bufAdr, 0x0, 0x2EE00);
-}
-
-/* Clear Screen */
-void doClear() {
-    u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
-    memset (bufAdr, 0, 0x46500);    
 }
 
 

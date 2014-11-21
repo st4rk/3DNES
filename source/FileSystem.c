@@ -4,11 +4,15 @@
 
 u8  ROM_Cache[MAX_ROM_SIZE];
 u8 *SRAM_Name;
+
 u64	ROM_Size;
+
 FS_archive sdmcArchive;
 
 extern bool inGame;	
 extern bool VSYNC;
+extern bool CPU_Running;
+
 extern u8	frameSkip;
 
 void unicodeToChar(char* dst, u16* src) {
@@ -44,6 +48,9 @@ void NES_LOADROMLIST() {
 
 	/* Save total of files */
 	fileSystem.totalFiles = cont;
+
+
+	
 	
 	/*
 	TODO: Dynamic File Read
@@ -77,7 +84,7 @@ void NES_drawROMLIST() {
 		draw_string_c(55 + (i * 15), fileSystem.fileList[i]);
 	}
 
-	draw_string(25, (fileSystem.cFile * 15) + 53, "->");
+	draw_string(10, (fileSystem.cFile * 15) + 53, "->");
 
 }
 
@@ -86,9 +93,10 @@ void NES_drawConfigurationMenu() {
 	char gameFPS[18];
 
 
+	draw_string(10, (fileSystem.cConfig* 15) + 70, "->");
+
 	sprintf(gameFPS, "FrameSkip: %d", frameSkip);
 
-	draw_string(10, (fileSystem.cConfig* 15) + 70, "->");
 	draw_string_c(50, "Configuration Menu");
 	draw_string_c(73, gameFPS);
 	
@@ -97,8 +105,6 @@ void NES_drawConfigurationMenu() {
 	else
 		draw_string_c(88, "VSYNC: DISABLE");
 
-
-	draw_string_c(103,"Sprites: ");
 	draw_string_c(118, "Exit and Start Game");
 
 }
@@ -125,10 +131,16 @@ void NES_LoadSelectedGame() {
 	u32    ROMDIR_Size = (strlen("/3DNES/ROMS/") + strlen(fileSystem.fileList[fileSystem.currFile]) + 1);
 	Handle fileHandle;
 
+
+	/* Restart CPU */
+	CPU_Running = false;
+
 	/* Alloc ROM Directory */
 	char ROM_DIR[ROMDIR_Size];
 
+	/* Clear ROM_Dir */
 	memset(ROM_DIR, 0x0, ROMDIR_Size);
+
 	/* concatenate strings */
 	FS_StringConc(ROM_DIR,  "/3DNES/ROMS/", fileSystem.fileList[fileSystem.currFile]);
 
@@ -143,13 +155,6 @@ void NES_LoadSelectedGame() {
 	
 	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
 	FSFILE_GetSize(fileHandle, &ROM_Size);
-	
-	/* TODO: Fix Dynamic ROM 
-	if (ROM_Cache != NULL)
-		linearFree(ROM_Cache);
-
-	ROM_Cache = linearAlloc(ROM_Size);
-	*/
 	FSFILE_Read(fileHandle, &bytesRead, 0x0, (u32*)ROM_Cache, (u32)ROM_Size);
 	FSFILE_Close(fileHandle);
 
@@ -177,7 +182,7 @@ void NES_ConfigurationMenu() {
 					break;
 
 					case 2:
-						ENABLE_Sprite = 0;
+						
 					break;
 
 					default:
@@ -203,7 +208,7 @@ void NES_ConfigurationMenu() {
 					break;
 
 					case 2:
-						ENABLE_Sprite = 1;
+						
 					break;
 
 					default:
@@ -232,7 +237,7 @@ void NES_ConfigurationMenu() {
 		if(keys & BUTTON_DOWN){
 			if(!fileSystem.UKEY_DOWN) {
 
-				if(fileSystem.cConfig < 10)
+				if(fileSystem.cConfig < 2)
 					fileSystem.cConfig++;
 				
 				fileSystem.UKEY_DOWN = 1;
@@ -244,7 +249,7 @@ void NES_ConfigurationMenu() {
 
 		if(keys & BUTTON_B) {
 			if(!fileSystem.UKEY_B) {
-				if(fileSystem.cConfig == 3)
+				if(fileSystem.cConfig == 2)
 					fileSystem.inMenu = 0;
 
 				fileSystem.UKEY_B = 1;
