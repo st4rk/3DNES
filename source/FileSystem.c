@@ -2,10 +2,20 @@
 #include "nesGlobal.h"
 
 
-u8 *ROM_Cache;
+u8  ROM_Cache[MAX_ROM_SIZE];
 u8 *SRAM_Name;
+u64	ROM_Size;
+FS_archive sdmcArchive;
 
-u32	ROM_Size;
+extern bool inGame;	
+
+
+void unicodeToChar(char* dst, u16* src) {
+    if(!src || !dst)return;
+    while(*src)*(dst++)=(*(src++))&0xFF;
+    *dst=0x00;
+}
+
 
 /* Load Complete ROM LIST */
 void NES_LOADROMLIST() {
@@ -13,6 +23,10 @@ void NES_LOADROMLIST() {
 	
 	FS_dirent dirStruct;
 	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/ROMS");
+
+	/* INIT SDMC ARCHIVE */
+	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
+	FSUSER_OpenArchive(NULL, &sdmcArchive);
 
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
@@ -23,12 +37,16 @@ void NES_LOADROMLIST() {
 		u32 dataRead = 0;
 		FSDIR_Read(romHandle, &dataRead, 1, &dirStruct);
 		if(dataRead == 0) break;
+		unicodeToChar(fileSystem.fileList[cont], dirStruct.name);
 		cont++;
 	}
 
 	/* Save total of files */
 	fileSystem.totalFiles = cont;
-	fileSystem.fileList = linearAlloc(cont * MAX_FILENAME_SIZE);
+	
+	/*
+	TODO: Dynamic File Read
+	fileSystem.fileList = linearAlloc(MAX_FILENAME_SIZE * cont);
 
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
@@ -38,30 +56,35 @@ void NES_LOADROMLIST() {
 		u32 dataRead = 0;
 		FSDIR_Read(romHandle, &dataRead, 1, &dirStruct);
 		if(dataRead == 0) break;
-		unicode_to_char(fileSystem.fileList[(MAX_FILENAME_SIZE * cont)], dirStruct.name);
+		unicodeToChar(&fileSystem.fileList[MAX_FILENAME_SIZE * cont), dirStruct.name);
 		cont++;
 	}
+	
+	*/
 
 	FSDIR_Close(romHandle);
-
 }
 
 /* Draw All ROM's */
 void NES_drawROMLIST() {
 	int i = 0;
 
+	// TODO: Fix select file bar 
 	//draw_select_bar(-67, (fileSystem.cFile * 15) + 53);
 
-	draw_string_c(25, "FileList Test:");
-
 	for(i = 0; i < fileSystem.totalFiles; i++) {
-		draw_string_c(55 + (i * 15), fileSystem.fileList[i + fileSystem.sFile]);
+		draw_string_c(55 + (i * 15), fileSystem.fileList[i]);
 	}
+
+	draw_string(25, (fileSystem.cFile * 15) + 53, "->");
+
 }
 
 /* Draw Configuration Menu */
 void NES_drawConfigurationMenu() {
-	draw_select_bar(-67, (fileSystem.cConfig * 15) + 70);
+	//draw_select_bar(-67, (fileSystem.cConfig * 15) + 70);
+
+	draw_string(25, (fileSystem.cConfig* 15) + 70, "->");
 	draw_string_c(50, "Configuration Menu");
 	draw_string_c(73, "FrameSkip: ");
 	draw_string_c(88, "Background: ");
@@ -87,27 +110,38 @@ void FS_StringConc(char* dst, char* src1, char* src2) {
 
 void NES_LoadSelectedGame() {
 	u32    bytesRead = 0;
+	u32    SRAM_Size = 0;
+
 	Handle fileHandle;
 
 	/* Alloc ROM Directory */
-	char *ROM_DIR = linearAlloc(strlen("/3DNES/ROMS") + strlen(fileSystem.fileList[fileSystem.currFile]) + 1);
+	char *ROM_DIR = linearAlloc(strlen("/3DNES/ROMS/") + strlen(fileSystem.fileList[fileSystem.currFile]) + 1);
 
 	/* concatenate strings */
-	FS_StringConc(ROM_DIR,  "/3DNES/ROMS", fileSystem.fileList[fileSystem.currFile]);
+	FS_StringConc(ROM_DIR,  "/3DNES/ROMS/", fileSystem.fileList[fileSystem.currFile]);
 
 	/* Save File Name ! */
 	if (SRAM_Name != NULL) {
 		linearFree(SRAM_Name);
-		SRAM_Name = linearAlloc(strlen(fileSystem.fileList[fileSystem.currFile]) - 4);
-		strncpy(SRAM_Name, fileSystem.fileList[fileSystem.currFile], strlen(fileSystem.fileList[fileSystem.currFile]) - 4);
+		SRAM_Size = (strlen(fileSystem.fileList[fileSystem.currFile]) - 4);
+		SRAM_Name = linearAlloc(SRAM_Size);
+		strncpy((char*)SRAM_Name, fileSystem.fileList[fileSystem.currFile], SRAM_Size);
 	}
 
+	
 	FSUSER_OpenFileDirectly(NULL, &fileHandle, sdmcArchive, FS_makePath(PATH_CHAR, ROM_DIR), FS_OPEN_READ, FS_ATTRIBUTE_NONE);
 	FSFILE_GetSize(fileHandle, &ROM_Size);
+	
+	/* TODO: Fix Dynamic ROM 
+	if (ROM_Cache != NULL)
+		linearFree(ROM_Cache);
+
 	ROM_Cache = linearAlloc(ROM_Size);
-	FSFILE_Read(fileHandle, &bytesRead, 0x0, (u32*)ROM_Cache, ROM_Size);
+	*/
+	FSFILE_Read(fileHandle, &bytesRead, 0x0, (u32*)ROM_Cache, (u32)ROM_Size);
 	FSFILE_Close(fileHandle);
 
+	
 	/* FREE Allocation */
 	linearFree(ROM_DIR);
 
@@ -275,17 +309,12 @@ void NES_CurrentFileUpdate() {
 
 
 void NES_MainMenu() {
-	if (fileSystem.inMenu == 0)
+	if (fileSystem.inMenu == 0) {
 		NES_drawROMLIST();
-	else
+		NES_CurrentFileUpdate();
+	}
+	else {
 		NES_drawConfigurationMenu();
-}
-
-void unicode_to_char(char* dst, unsigned short *src) {
-    int i = 0;
-    for (i = 0; i < 0x106; i++) {
-        if (src[i] == '\0') break;
-
-        dst[i] = (src[i] & 0x00FF);
-    }
+		NES_ConfigurationMenu();
+	}
 }

@@ -3,7 +3,7 @@
 
 /* SRAM Save and Load */
 void SRAM_LOADSTATE() {
-	Handle dirHandle;
+	/*Handle dirHandle;
 	u32 bytesRead;
 	
 	u8 resultado[strlen(SRAM_Name) + strlen("/3DNES/SAVES/") + 1];
@@ -16,14 +16,14 @@ void SRAM_LOADSTATE() {
 	Handle fileHandledump;
 	FSUSER_OpenFile(NULL, &fileHandledump, sdmcArchive, FS_makePath(PATH_CHAR,  resultado), FS_OPEN_WRITE|FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
  	
-	/* Load ROM in ROM Cache */
 	FSFILE_Read(fileHandledump, &bytesRead, 0x0, (u32*)&memory[0x6000],(u32)8192);
 
  	FSFILE_Close(fileHandledump);
+ 	*/
 }
 
 void SRAM_SAVESTATE() {
-	Handle dirHandle;
+	/*Handle dirHandle;
 	u32 bytesRead;
 	
 	u8 resultado[strlen(SRAM_Name) + strlen("/3DNES/SAVES/") + 1];
@@ -39,6 +39,7 @@ void SRAM_SAVESTATE() {
  	FSFILE_Write(fileHandledump, &bytesRead, 0x0, &memory[0x6000], 8192, 0x10001);
 
  	FSFILE_Close(fileHandledump);
+ 	*/
 }
 
 /* Emulation Stuff */

@@ -259,15 +259,16 @@ void draw_pixel(int x, int y, int nescolor) {
     if ((x>=256) || (x<0)) {return;}
     if ((y>=240) || (y<0)) {return;}
 
-    u8* framebuffer = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+
+    u8* topLeftFB = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+
     y = 240-y;
     x = 72+x;
     u32 v=(y+x*240)*3;
-   
-    framebuffer[v]=palette[nescolor].b;
-    framebuffer[v+1]=palette[nescolor].g;
-    framebuffer[v+2]=palette[nescolor].r;
 
+    topLeftFB[v]    = palette[nescolor].b;
+    topLeftFB[v+1]  = palette[nescolor].g; 
+    topLeftFB[v+2]  = palette[nescolor].r;
 }
 
 
@@ -279,7 +280,7 @@ void draw_pixel_rgb(int x, int y, u8 r, u8 g, u8 b) {
     x = 72+x;
     u32 v=(y+x*240)*3;
 
-    u8* topLeftFB=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    u8* topLeftFB = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
     topLeftFB[v]	=b;
     topLeftFB[v+1]	=g;
@@ -595,15 +596,15 @@ void render_sprite(int scanline, bool foreground) {
 void update_screen() {
     int nescolor = PPU_Memory[0x3f00];
     int x;
+    
+    u8* bufAdr = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 
-
-  /* DISABLE FOR TEST 
     for(x = 51840; x < 236160; x+=3){
         bufAdr[x]=palette[nescolor].b;
         bufAdr[x+1]=palette[nescolor].g;
         bufAdr[x+2]=palette[nescolor].r;
     }
-   */
+
   
 }
 
@@ -611,6 +612,12 @@ void update_screen() {
 void drawMenu() {
     u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
 	memcpy(bufAdr, imagem, 0x46500);
+}
+
+/* Clear Screen */
+void doClear() {
+    u8* bufAdr=gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+    memset (bufAdr, 0, 0x46500);    
 }
 
 
