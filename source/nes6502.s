@@ -8,12 +8,55 @@
 
 .arm
 .align 2
+
+
+@ --------------------
+@ -    Data Region  --
+@ --------------------
+
+
+
+
+
+
+
+@ --------------------
+@ - Addressing Mode --
+@ --------------------
+
+
+
+
+@ -----------------------
+@ - 6502 Execute/Reset --
+@ -----------------------
+
+
 .global CPU_Execute @ CPU_Execute(cycles)
 .type   CPU_Execute STT_FUNC
 CPU_Execute:
 
 
+.global CPU_Reset
+.type   CPU_Reset   STT_FUNC
+CPU_Reset:
 
+
+@ --------------------
+@ - CPU INTERRUPT   --
+@ --------------------
+
+
+.global IRQ
+.type   IRQ  STT_FUNC
+IRQ:
+
+
+
+
+.global NMI
+.type   NMI STT_FUNC
+NMI:
 
 
 

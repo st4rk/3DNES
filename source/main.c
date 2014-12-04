@@ -33,10 +33,9 @@ bool PAUSE_Emulation;
 bool ENABLE_Background;
 bool ENABLE_Sprite;
 bool inGame;
+bool VSYNC;
 
 int PAD1_ReadCount = 0;
-
-extern FS_archive sdmcArchive;
 
 /* It will init all services necessary to Homebrew work ! */
 void INIT_3DS() {
@@ -49,10 +48,10 @@ void INIT_3DS() {
 	aptSetupEventHandler();
 	init_ppu();
 
-	ROM_Cache 			= NULL;
 	PPU_Memory 		    = linearAlloc(16384);
 	SPRITE_Memory  	    = linearAlloc(256);
-	frameSkip			= 0;
+	frameSkip			= 2;
+	skipFrame			= 0;
 
 
 
@@ -64,14 +63,11 @@ void INIT_3DS() {
 	ENABLE_Background	= true;
 	ENABLE_Sprite		= true;
 	inGame				= false;
-
+	VSYNC				= true;
 }
 
 /* It will init and load the ROM List */
 void INIT_FileSystem() {
-	/* INIT SDMC ARCHIVE */
-	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
-	FSUSER_OpenArchive(NULL, &sdmcArchive);
 	fileSystem.inMenu = false;
 	NES_LOADROMLIST();
 }
@@ -83,12 +79,16 @@ void EXIT_3DS() {
 	/* Free All Linear Allocation */
 	if (ROM_Cache != NULL)
 		linearFree (ROM_Cache);
-	
+	if (SRAM_Name != NULL)
+		linearFree (SRAM_Name);
+	// TODO: Dynamic File List
+	//if (fileSystem.fileList != NULL)
+	//	linearFree (fileSystem.fileList);
+
+
 	linearFree (PPU_Memory);
 	linearFree (SPRITE_Memory);
 
-	if (SRAM_Name != NULL)
-		linearFree (SRAM_Name);
 
 	fsExit();
 	hidExit();
@@ -99,8 +99,11 @@ void EXIT_3DS() {
 }
 
 void INIT_EMULATION() {
+
 	if (NES_LoadROM() == -1) {
-		/* An error ocurred and the game can't start */
+		draw_string_c(100, "ROM ERRO");
+		inGame = false;
+
 	}
 
 
@@ -110,13 +113,11 @@ void INIT_EMULATION() {
 	if (SRAM == 1) 
 		SRAM_LOADSTATE();
 
-
 	CPU_reset();
 	RESET_INPUT();
 	do_mirror(MIRRORING);
 
 	CPU_Running = true;
-
 }
 
 
@@ -124,14 +125,13 @@ void INIT_EMULATION() {
 void NES_CheckJoypad() {
     u32 keys = ((u32*)0x10000000)[7];
 
-    if(keys & BUTTON_L1) {  
-        inGame = 1;
-    }
+    if (!inGame)
+    	inGame = true;
 
-    if(inGame == 1){
+    if(inGame == true){
 
         if(keys & BUTTON_L1) {
-            inGame = 0;
+            inGame = false;
         }
     
         if(keys & BUTTON_A)
@@ -190,6 +190,8 @@ void NES_MAINLOOP() {
 				if (!inGame) {
 					drawMenu();
 					NES_MainMenu();
+					drawBuffers();
+					gspWaitForVBlank();
 				} else {
 
 					if (!CPU_Running)
@@ -200,6 +202,8 @@ void NES_MAINLOOP() {
 					if (skipFrame > frameSkip) 
 						skipFrame = 0;
 
+					if (skipFrame == 0)
+						NES_ColorBackground();
 
 					for (scanline = 0; scanline < 262; scanline++) {
 						if (MAPPER == 5) mmc5_hblank(scanline);
@@ -217,14 +221,16 @@ void NES_MAINLOOP() {
 						}
 					}
 
-
+					NES_CheckJoypad();
+					
+					if (skipFrame == 0)
+						drawBuffers();
+					
 					skipFrame++;
 
-					NES_CheckJoypad();
-
+					if (VSYNC)		
+						gspWaitForVBlank();
 				}
-				
-				drawBuffers();
 			break;
 
 			case APP_SUSPENDING:
@@ -239,8 +245,6 @@ void NES_MAINLOOP() {
 			break;
 		}
 
-		gspWaitForVBlank();
-		//gspWaitForEvent(GSPEVENT_VBlank0, false);
 	}
 
 }
