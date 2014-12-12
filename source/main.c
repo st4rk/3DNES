@@ -45,7 +45,6 @@ void INIT_3DS() {
 	gfxInit();
 	hidInit(NULL);
 	gfxSet3D(false);
-	aptSetupEventHandler();
 	init_ppu();
 
 	PPU_Memory 		    = linearAlloc(16384);
@@ -77,13 +76,12 @@ void INIT_FileSystem() {
 void EXIT_3DS() {
 
 	/* Free All Linear Allocation */
-	if (ROM_Cache != NULL)
-		linearFree (ROM_Cache);
 	if (SRAM_Name != NULL)
 		linearFree (SRAM_Name);
+	
 	// TODO: Dynamic File List
-	//if (fileSystem.fileList != NULL)
-	//	linearFree (fileSystem.fileList);
+	//  if (fileSystem.fileList != NULL)
+	//  linearFree (fileSystem.fileList);
 
 
 	linearFree (PPU_Memory);
@@ -103,7 +101,6 @@ void INIT_EMULATION() {
 	if (NES_LoadROM() == -1) {
 		draw_string_c(100, "ROM ERRO");
 		inGame = false;
-
 	}
 
 
@@ -182,7 +179,6 @@ void NES_MAINLOOP() {
 
 	int scanline = 0;
 
-
 	while ((status = aptGetStatus()) != APP_EXITING ) {
 
 		switch (status) {
@@ -242,6 +238,7 @@ void NES_MAINLOOP() {
 			break;
 
 			default:
+
 			break;
 		}
 
@@ -372,7 +369,7 @@ int  memoryRead16(u32 addr) {
 
 /* write a byte */
 void writeMemory(u32 addr, u8 data) {
-/* PPU Video Memory area */
+	/* PPU Video Memory area */
 	if(addr > 0x1fff && addr < 0x4000) {
 		write_PPU_Memory(addr,data);
 		return;
@@ -466,6 +463,9 @@ void writeMemory(u32 addr, u8 data) {
 
 int main() {
 	
+	/* Set FrameBuffer Format */
+	gfxSetScreenFormat(GFX_TOP,    GSP_RGB565_OES);
+	gfxSetScreenFormat(GFX_BOTTOM, GSP_RGB565_OES);
 
 	INIT_3DS();
 	INIT_FileSystem();

@@ -22,11 +22,13 @@
 @ ----------------- CPU REGISTERS --------------------------------
 
 
+@ TODO: each ARM register has 32 bits, so use A,X,Y in just one register(24 bits, 8 bits unused or other important thing =P)
+nesF						.req r4
 nesA						.req r5
 nesX						.req r6
 nesY						.req r7
 nesStack					.req r8
-nesPC						.req r9
+nesPC						.req r9  
 nesEA						.req r10 
-nesTick						.req r10
+nesTick						.req r11 
 
