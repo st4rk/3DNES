@@ -13,10 +13,13 @@
 #include <stdbool.h>
 
 #include "6502core.h"
-
+#include "memory.h"
 bool penalty_op, penalty_addr;
 
 unsigned char memory[65536];
+
+
+
 
 /* Instruções */
 

@@ -20,6 +20,8 @@
 #include "FileSystem.h"
 
 
+unsigned char memory[65536];
+
 u8 	*PPU_Memory;
 u8 	*SPRITE_Memory;
 u8	frameSkip;
@@ -42,6 +44,8 @@ void INIT_3DS() {
 	srvInit();	
 	fsInit();
 	aptInit();
+	/* old ctrulib */
+	aptSetupEventHandler();
 	gfxInit();
 	hidInit(NULL);
 	gfxSet3D(false);
@@ -464,8 +468,8 @@ void writeMemory(u32 addr, u8 data) {
 int main() {
 	
 	/* Set FrameBuffer Format */
-	gfxSetScreenFormat(GFX_TOP,    GSP_RGB565_OES);
-	gfxSetScreenFormat(GFX_BOTTOM, GSP_RGB565_OES);
+	//gfxSetScreenFormat(GFX_TOP,    GSP_RGB565_OES);
+	//gfxSetScreenFormat(GFX_BOTTOM, GSP_RGB565_OES);
 
 	INIT_3DS();
 	INIT_FileSystem();
