@@ -228,8 +228,8 @@ void NES_MAINLOOP() {
 					
 					skipFrame++;
 
-
-					gspWaitForEvent(GSPEVENT_VBlank, false);
+					
+					gspWaitForEvent(GSPEVENT_VBlank0, false);
 					//if (VSYNC)		
 					//	gspWaitForVBlank();
 				}

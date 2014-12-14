@@ -17,7 +17,7 @@
 
 .data 
 .global CPU_6502_REG @ 6502 Registers, we will load/save the registers here
-	CPU_6502_REG:
+CPU_6502_REG:
 		.long 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 .equ TOTAL_CYCLE, 114
@@ -173,10 +173,6 @@
 	add nesEA, nesY
 .endm
 
-
-@ Interrupt TODO : writeMemory in Assembly
-
-
 .global IRQ
 IRQ: @ maskable interrupt
 	stmdb sp!, {r0-r12, lr}
@@ -200,7 +196,8 @@ IRQ: @ maskable interrupt
 	ldr r0,    =(memory+0xFFFE) @ r0   = memory[0xFFFE]
 	ldrh nesPC, [nesPC]
 	ldrh r0, [r0]
-	orr nesPC, r0, nesPC, ASL #8 @ nesPC = r0 | (nesPC 8 arith shift left);
+	and r0, r0, #0xFF00
+	orr nesPC, nesPC, r0
 	add nesTick, #0x7
 
 	SAVE_6502 @ End of operation save 6502 registers
@@ -210,21 +207,34 @@ IRQ: @ maskable interrupt
 
 .global NMI
 NMI: @ non-maskable interrupt
-	@ write memory
+	stmdb sp!, {r0-r12, lr}
+
+	LOAD_6502 @ Load 6502 Registers
+
+	add nesStack, #0x64 @ nesStack += 100
+	lsr nesPC, #0x8 @ nesPC >> 8
+	mov r0, nesStack @ r0 = nesStack
+	mov r1, nesPC 	 @ r1 = nesStack
+	bl writeMemory @ nesStack, nesPC
+	sub nesStack, #0x1 @ nesStack--
+	mov r0, nesStack @ r0 = nesStack
+	bl writeMemory @ nesStack, nesPC
+	sub nesStack, #0x1 @ nesStack--
+	mov r0, nesStack
+	orr nesF, #sInterruptFlag @ software Interrupt Flag
+	bl writeMemory @ nesStack, nesPC
 	sub nesStack, #0x1
-	@ write memory
-	sub nesStack, #0x1
-	orr nesF, #sInterruptFlag @ software Interrupt flag
-	@ write memory
-	sub nesStack, #0x1
-	orr nesF, #interruptFlag @ interrupt
+	orr nesF, #interruptFlag @ Interrupt
 	ldr nesPC, =(memory+0xFFFB)
 	ldr r0,    =(memory+0xFFFA) @ r0   = memory[0xFFFE]
 	ldrh nesPC, [nesPC]
 	ldrh r0, [r0]
-	orr nesPC, r0, nesPC, ASL #8 @ nesPC = r0 | (nesPC 8 arith shift left);
+	and r0, r0, #0xFF00
+	orr nesPC, nesPC, r0
 	add nesTick, #0x7
+
 	SAVE_6502 @ End of operation save 6502 registers
+	
 	ldmia sp!, {r0-r12, pc}
 
 
@@ -239,7 +249,7 @@ opcodeJumpTable:
 	.long bpl,    ora_indy, NULL,   NULL,  NULL,    ora_zpx, asl_zpx, NULL, clc, ora_absy, NULL,  NULL,   NULL,     ora_absx, asl_absx, NULL @ 1
 	.long jsr,    and_indx, NULL,   NULL,  bit_zp,  and_zp,  rol_zp,  NULL, plp, and_imm,  rol_a, NULL,   bit_abso, and_abso, rol_abso, NULL @ 2  
 	.long bmi,    and_indy, NULL,   NULL,  NULL,    and_zpx, rol_zpx, NULL, sec, and_absy, NULL,  NULL,   NULL,     and_absx, rol_absx, NULL @ 3
-    .long rti,    eor_indx, NULL,   NULL,  NULL,    eor_zp,  lsr_zp,  NULL, pha, eor_imm,  lsr_a, NULL,   jmp_abso, eor_abso, lsr_abso, NULL @ 4
+	.long rti,    eor_indx, NULL,   NULL,  NULL,    eor_zp,  lsr_zp,  NULL, pha, eor_imm,  lsr_a, NULL,   jmp_abso, eor_abso, lsr_abso, NULL @ 4
 	.long bvc,    eor_indy, NULL,   NULL,  NULL,    eor_zpx, lsr_zpx, NULL, cli, eor_absy, NULL,  NULL,   NULL,     eor_absx, lsr_absx, NULL @ 5
 	.long rts,    adc_indx, NULL,   NULL,  NULL,    adc_zp,  ror_zp,  NULL, pla, adc_imm,  ror_a, NULL,   jmp_ind,  adc_abso, ror_abso, NULL @ 6
 	.long bvs,    adc_indy, NULL,   NULL,  NULL,    adc_zpx, ror_zpx, NULL, sei, adc_absy, NULL,  NULL,   NULL,     adc_absx, ror_absx, NULL @ 7
@@ -304,7 +314,9 @@ CPU_Reset:
 	ldr r0,    =(memory+0xFFFC) @ r0   = memory[0xFFFE]
 	ldrh nesPC, [nesPC]
 	ldrh r0, [r0]
-	orr nesPC, r0, nesPC, ASL #8 @ nesPC = r0 | (nesPC 8 arith shift left);
+
+	and r0, r0, #0xFF00
+	orr nesPC, nesPC, r0
 
 	SAVE_6502
 	ldmia sp!, {r0-r12, pc}
@@ -333,51 +345,119 @@ brk:
 	ldr r0,    =(memory+0xFFFE) @ r0   = memory[0xFFFE]
 	ldrh nesPC, [nesPC]
 	ldrh r0, [r0]
-	orr nesPC, r0, nesPC, ASL #8 @ nesPC = r0 | (nesPC 8 arith shift left);
-	
+	and r0, r0, #0xFF00
+	orr nesPC, nesPC, r0
+
+	add nesTick, #0x7
 	mov pc, r1 
 
 @ ---------------------- ORA INDX ------------------------------
 
-ora_indx:
-	mov r1, lr
+ora_indx: @ TODO: penalty_op
+	mov r12, lr
 
+	INDX
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
 
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
 
-	mov pc, r1
+	tst nesA, #0x80
+	orrne nesF, #0x80
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, #0x6
+
+	mov pc, r12
 
 
 @ --------------------- ORA ZP ---------------------------------
 
 ora_zp:
-	mov r1, lr
+	mov r12, lr
+	ZP
+
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
+
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag 
 
 
-	mov pc, r1
+	add nesTick, #0x3
+
+	mov pc, r12
 
 
 @ -------------------- ASL ZPY ---------------------------------
 
 asl_zp: 
-	mov r1, lr
+	mov r12, lr
+	ZPY
 
-	mov pc, r1
+	mov r0, nesEA
+	bl memoryRead
+
+	tst r0, #signFlag
+	orrne nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, lsl #1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r0, #0x0
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #signFlag
+
+	tst r0, #signFlag
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+
+	add nesTick, #0x5
+
+	mov pc, r12
 
 
 @ -------------------  PHP -------------------------------------
 
 php:
-	mov r1, lr
+	mov r12, lr
 
-	mov pc, r1
+	add r0, nesStack, #0x100
+	orr r1, nesF, #sInterruptFlag
+	bl writeMemory
+	sub nesStack, #0x1
+
+	add nesTick, #0x3
+
+	mov pc, r12
 
 
 @ ------------------ ORA IMM ----------------------------------
 
-ora_imm:
-	mov r1, lr
+ora_imm: @ TODO: penalty_op
+	mov r12, lr
+	IMM 
 
-	mov pc, r1
+	mov r0, nesEA
+	bl readMemory
+	orr nesA, nesA, r0
+
+	add nesTick, #0x2
+
+	mov pc, r12
 
 
 @ ----------------- ASL_A   ----------------------------------
