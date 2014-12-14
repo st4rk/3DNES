@@ -45,7 +45,7 @@ void INIT_3DS() {
 	fsInit();
 	aptInit();
 	/* old ctrulib */
-	aptSetupEventHandler();
+	//aptSetupEventHandler();
 	gfxInit();
 	hidInit(NULL);
 	gfxSet3D(false);
@@ -228,8 +228,10 @@ void NES_MAINLOOP() {
 					
 					skipFrame++;
 
-					if (VSYNC)		
-						gspWaitForVBlank();
+
+					gspWaitForEvent(GSPEVENT_VBlank, false);
+					//if (VSYNC)		
+					//	gspWaitForVBlank();
 				}
 			break;
 
@@ -468,8 +470,8 @@ void writeMemory(u32 addr, u8 data) {
 int main() {
 	
 	/* Set FrameBuffer Format */
-	//gfxSetScreenFormat(GFX_TOP,    GSP_RGB565_OES);
-	//gfxSetScreenFormat(GFX_BOTTOM, GSP_RGB565_OES);
+	gfxSetScreenFormat(GFX_TOP,    GSP_RGB565_OES);
+	gfxSetScreenFormat(GFX_BOTTOM, GSP_RGB565_OES);
 
 	INIT_3DS();
 	INIT_FileSystem();

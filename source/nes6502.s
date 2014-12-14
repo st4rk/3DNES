@@ -7,7 +7,7 @@
 @ -----------------------------------------------------------------
 
 .arm
-.align 2
+.align 4
 
 #include "nes6502.inc"
 
@@ -40,58 +40,137 @@
 .endm
 
 .macro IMM @ Immediate 
-	ldr		nesEA, [memory, nesPC], #2 @ nesEA = memory[nesPC++]
+	mov nesEA, nesPC
+	add nesPC, #0x100
 .endm
 
-
-@ TODO: memoryRead in ASM
-
 .macro ZP  @ zeroPage
-
+	mov r0, nesPC
+	bl memoryRead 
+	add nesPC, #0x1
+	mov nesEA, r0
 .endm
 
 .macro ZPX @ zeroPage X
-
+	mov r0, nesPC
+	bl memoryRead
+	add nesPC, #0x1
+	add nesEA, r0, nesX
 .endm
 
 .macro ZPY @ zeroPage Y
-
+	mov r0, nesPC
+	bl memoryRead
+	add nesPC, #0x1
+	add nesEA, r0, nesY
 .endm
 
 .macro REL @ relative for branch ops (8 bit immediate value, sign-extended)
-	
+	mov r0, nesPC
+	bl memoryRead
+	add nesPC, #0x1
+	mov nesEA, r0
 	cmp 	nesEA, #0x80
 	sublt 	nesEA, #0x100 @ If (nesEA >= 0x80) nesEA -= 0x100
 .endm
 
 .macro ABSO @ absolute
+	mov r0, nesPC
+	bl memoryRead
+	mov nesEA, r0
 	
+	add nesPC, #0x1
+	
+	mov r0, nesPC
+	bl memoryRead
+	orr nesEA, nesEA, r0, ASL #8
 	add 	nesPC, #0x2
 .endm
 
 .macro ABSX @ absolute, X  TODO: addr in cycles
-
+	mov r0, nesPC
+	bl memoryRead
+	mov nesEA, r0
+	
+	add nesPC, #0x1
+	
+	mov r0, nesPC
+	bl memoryRead
+	orr nesEA, nesEA, r0, ASL #8
+	add nesEA, nesX
 	add 	nesPC, #0x2
 .endm
 
 .macro ABSXY @ absolute, Y  TODO: addr in cycles
+	mov r0, nesPC
+	bl memoryRead
+	mov nesEA, r0
 	
+	add nesPC, #0x1
+	
+	mov r0, nesPC
+	bl memoryRead
+	orr nesEA, nesEA, r0, ASL #8
+	add nesEA, nesY
 	add 	nesPC, #0x2
 .endm
 
 .macro IND  @ indirect
+	mov r0, nesPC
+	bl memoryRead
+	add nesPC, #0x1
 	
-	add 	nesPC, #0x2
+	mov r0, nesPC
+	bl memoryRead
+	orr nesEA, nesEA, r0, ASL #8
+	mov r1, nesEA
+	
+	add nesPC, #0x2
+	add r2, r1, #0x1
+	orr r1, r2, r1, ASL #8
+
+	mov r0, nesEA
+	bl memoryRead
+	mov nesEA, r0
+	mov r0, r2
+	bl memoryRead
+
+	orr nesEA, nesEA, r0, ASL #8
 .endm
 
 .macro INDX @ indirect, x
-	
+	mov r0, nesPC
+	bl memoryRead
+	add nesEA, r0, nesX
+	add nesPC, #0x1
 
+	mov r0, nesEA
+	bl memoryRead
+	mov r1, r0
+
+	add r0, nesEA, #0x1	
+	bl memoryRead
+
+	orr nesEA, r1, r0, ASL #8
 .endm
 
 
 .macro INDY  @ indirect, y  TODO: addr in cycles
+	mov r0, nesPC
+	bl memoryRead
+	add nesEA, r0, #0x1
+	add nesPC, #0x1
+
+	orr r1, nesEA, r0, ASL #8 @ data
+
+	bl memoryRead
+	mov nesEA, r0
 	
+	mov r0, r1
+	bl memoryRead
+
+	orr nesEA, nesEA, r0, ASL #8
+	add nesEA, nesY
 .endm
 
 
