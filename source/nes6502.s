@@ -398,11 +398,11 @@ ora_zp:
 	mov pc, r12
 
 
-@ -------------------- ASL ZPY ---------------------------------
+@ -------------------- ASL ZP ---------------------------------
 
 asl_zp: 
 	mov r12, lr
-	ZPY
+	ZP
 
 	mov r0, nesEA
 	bl memoryRead
@@ -463,19 +463,111 @@ ora_imm: @ TODO: penalty_op
 @ ----------------- ASL_A   ----------------------------------
 
 asl_a:
-	mov r1, lr
+	mov r12, lr
 
-	mov pc, r1
+	tst nesA, #0x80
+	orrne nesP, #carryFlag
+	biceq nesP, nesP, #carryFlag
+
+	mov nesA, nesA, lsl #0x1 
+
+	cmp nesA, #0x0
+	bicne nesP, nesP, #zeroFlag
+	orreq nesP, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesP, #signFlag
+	biceq nesP, nesP, #signFlag
+
+	mov pc, r12
 
 
 @ ---------------- ORA ABSO -----------------------------
-ora_abso:
-	mov r1, lr
+ora_abso: @ TODO: penalty_op
+	mov r12, lr
+	ABSO
 
-	mov pc, r1
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
+
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, #0x80
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, #0x6
+
+	mov pc, r12
 
 @ ---------------- asl_abso ------------------------------
 asl_abso:
-	mov r1, lr
+	mov r12, lr
 
-	mov pc, r1
+	ABSO
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst r0, #signFlag
+	orrne nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, lsl #1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r0, #0x0
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #signFlag
+
+	tst r0, #signFlag
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+
+	add nesTick, #0x6
+
+	mov pc, r12
+
+@ -------------- BPL ----------------------------------
+
+bpl:
+
+
+@ --------------- ORA INDY ----------------------------
+
+ora_indy:
+
+
+@ -------------- ORA ZPX ------------------------------
+
+ora_zpx:
+
+
+@ -------------- ASL ZPX ------------------------------
+
+asl_zpx:
+
+
+@ ------------- CLC ---------------------------------
+
+clc:
+
+@ ------------- ORA_ABSY -----------------------------
+
+ora_absy:
+
+
+@ ---------------- ORA ABSX --------------------------
+
+ora_absx:
+
+
+@ --------------- ASL ABSX ---------------------------
+
+asl_absx:
