@@ -101,7 +101,7 @@ CPU_6502_REG:
 	add 	nesPC, #0x2
 .endm
 
-.macro ABSXY @ absolute, Y  TODO: addr in cycles
+.macro ABSY @ absolute, Y  TODO: addr in cycles
 	mov r0, nesPC
 	bl memoryRead
 	mov nesEA, r0
@@ -365,8 +365,8 @@ ora_indx: @ TODO: penalty_op
 	bicne nesF, nesF, #zeroFlag
 	orreq nesF, #zeroFlag
 
-	tst nesA, #0x80
-	orrne nesF, #0x80
+	tst nesA, #signFlag 
+	orrne nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
 	add nesTick, #0x6
@@ -466,18 +466,18 @@ asl_a:
 	mov r12, lr
 
 	tst nesA, #0x80
-	orrne nesP, #carryFlag
-	biceq nesP, nesP, #carryFlag
+	orrne nesF, #carryFlag
+	biceq nesF, svc 0x #carryFlag
 
 	mov nesA, nesA, lsl #0x1 
 
 	cmp nesA, #0x0
-	bicne nesP, nesP, #zeroFlag
-	orreq nesP, #zeroFlag
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
 
-	tst nesA, #0x80
-	orrne nesP, #signFlag
-	biceq nesP, nesP, #signFlag
+	tst nesA, #signFlag 
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag
 
 	mov pc, r12
 
@@ -495,8 +495,8 @@ ora_abso: @ TODO: penalty_op
 	bicne nesF, nesF, #zeroFlag
 	orreq nesF, #zeroFlag
 
-	tst nesA, #0x80
-	orrne nesF, #0x80
+	tst nesA, #signFlag 
+	orrne nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
 	add nesTick, #0x6
@@ -537,37 +537,259 @@ asl_abso:
 @ -------------- BPL ----------------------------------
 
 bpl:
+	mov r12, lr
+	REL
+
+	tst nesF, #signFlag
+	beq bpl_eq
+	b  bpl_end
+
+bpl_eq:
+	mov r0, nesPC
+	add r1, nesPC, nesEA
+	and r0, #0xFF00
+	and r1, #0xFF00
+
+	cmp r0, r1 @ if ((nesPC & 0xFF00) != (nesPC + nesEA) & 0xFF00))
+	addne nesTick, #0x2
+	addeq nesTick, #0x1
+
+	add nesPC, nesPC, nesEA
+
+bpl_end:
+	add nesTick, #0x2
+
+	mov pc, r12
+
 
 
 @ --------------- ORA INDY ----------------------------
 
 ora_indy:
+	mov r12, lr 
+	INDY
 
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
+
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
+
+	tst nesA, #signFlag 
+	orrne nesF, #signFlag 
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, #0x6
+
+	mov pc, r12
 
 @ -------------- ORA ZPX ------------------------------
 
 ora_zpx:
 
+	mov r12, lr 
+	ZPX
+
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
+
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, #0x80
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, #0x6
+
+	mov pc, r12
+
 
 @ -------------- ASL ZPX ------------------------------
 
 asl_zpx:
+	mov r12, lr
 
+	ZPX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst r0, #signFlag
+	orrne nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, lsl #1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r0, #0x0
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #signFlag
+
+	tst r0, #signFlag
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+
+	add nesTick, #0x6
+
+	mov pc, r12
 
 @ ------------- CLC ---------------------------------
-
 clc:
+	mov r12, lr
+
+	bic nesF, nesF, #0x1
+	add nesTick, #0x2
+
+	mov pc, r12
 
 @ ------------- ORA_ABSY -----------------------------
 
 ora_absy:
+	mov r12, lr 
+	ABSY
 
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
+
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
+
+	tst nesA, #signFlag 
+	orrne nesF, #signFlag 
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, #0x6
+
+	mov pc, r12
 
 @ ---------------- ORA ABSX --------------------------
 
 ora_absx:
+	mov r12, lr 
+	ABSX
 
+	mov r0, nesEA
+	bl memoryRead
+	orr nesA, r0
+
+	cmp nesA, #0x0 
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, #0x6
+
+	mov pc, r12
 
 @ --------------- ASL ABSX ---------------------------
 
 asl_absx:
+	mov r12, lr
+
+	ABSX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst r0, #signFlag
+	orrne nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, lsl #1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r0, #0x0
+	bicne nesF, nesF, #zeroFlag
+	orreq nesF, #signFlag
+
+	tst r0, #signFlag
+	orrne nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+
+	add nesTick, #0x6
+
+	mov pc, r12
+
+@ ---------------------- JSR --------------------------------
+jsr:
+	mov r12, lr
+
+	add r0, nesStack, #0x100
+	sub r1, nesPC, #0x1
+	mov r1, r1, ASR #8
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+
+	add r0, nesStack, #0x100
+	sub r1, nesPC, #0x1
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+
+	mov nesPC, nesEA
+
+
+	mov pc, r12
+@ ---------------------- AND INDX ---------------------------
+and_indx:
+	mov r12, lr
+	
+	INDX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesEA, #0x0
+	bicne nesP, nesP, #zeroFlag
+	orreq nesP, nesP, #zeroFlag
+
+	tst nesEA, #signFlag
+	orrne nesP, nesP, #signFlag
+	biceq nesP, nesP, #signFlag
+
+	mov pc, r12
+
+@ ---------------------- BIT ZP -----------------------------
+bit_zp:
+
+@ ---------------------- AND ZP -----------------------------
+and_zp:
+
+@ ---------------------- ROL ZP -----------------------------
+rol_zp:
+
+@ ---------------------- PLP --------------------------------
+plp:
+
+@ ---------------------- AND IMM ----------------------------
+and_imm:
+
+
+@ ---------------------- ROL A ------------------------------
+rol_a:
+
+@ ---------------------- BIT ABSO ---------------------------
+bit_abso:
+
+@ ---------------------- AND ABSO ---------------------------
+and_abso:
+
+@ ---------------------- ROL ABSO ---------------------------
+rol_abso:  
