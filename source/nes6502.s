@@ -245,31 +245,22 @@ NMI: @ non-maskable interrupt
 
 opcodeJumpTable:
 	@      0          1       2      3       4        5       6        7     8       9      A      B       C           D        E        F
-	.long brk,    ora_indx, NULL,   NULL,  NULL,    ora_zp,  asl_zp,  NULL, php, ora_imm,  asl_a, NULL,   NULL,     ora_abso, asl_abso, NULL @ 0
-	.long bpl,    ora_indy, NULL,   NULL,  NULL,    ora_zpx, asl_zpx, NULL, clc, ora_absy, NULL,  NULL,   NULL,     ora_absx, asl_absx, NULL @ 1
-	.long jsr,    and_indx, NULL,   NULL,  bit_zp,  and_zp,  rol_zp,  NULL, plp, and_imm,  rol_a, NULL,   bit_abso, and_abso, rol_abso, NULL @ 2  
-	.long bmi,    and_indy, NULL,   NULL,  NULL,    and_zpx, rol_zpx, NULL, sec, and_absy, NULL,  NULL,   NULL,     and_absx, rol_absx, NULL @ 3
-	.long rti,    eor_indx, NULL,   NULL,  NULL,    eor_zp,  lsr_zp,  NULL, pha, eor_imm,  lsr_a, NULL,   jmp_abso, eor_abso, lsr_abso, NULL @ 4
-	.long bvc,    eor_indy, NULL,   NULL,  NULL,    eor_zpx, lsr_zpx, NULL, cli, eor_absy, NULL,  NULL,   NULL,     eor_absx, lsr_absx, NULL @ 5
-	.long rts,    adc_indx, NULL,   NULL,  NULL,    adc_zp,  ror_zp,  NULL, pla, adc_imm,  ror_a, NULL,   jmp_ind,  adc_abso, ror_abso, NULL @ 6
-	.long bvs,    adc_indy, NULL,   NULL,  NULL,    adc_zpx, ror_zpx, NULL, sei, adc_absy, NULL,  NULL,   NULL,     adc_absx, ror_absx, NULL @ 7
-	.long NULL,   sta_indx, NULL,   NULL,  sty_zp,  sta_zp,  stx_zp,  NULL, dey, NULL,     txa,   NULL,   sty_abso, sta_abso, stx_abso, NULL @ 8
-	.long bcc,    sta_indy, NULL,   NULL,  sty_zpx, sta_zpx, stx_zpy, NULL, tya, sta_absy, txs,   NULL,   NULL,     sta_absx, NULL,     NULL @ 9
-	.long ldy_imm,lda_indx, ldx_imm,NULL,  ldy_zp,  lda_zp,  ldx_zp,  NULL, tay, lda_imm,  tax,   NULL,   ldy_abso, lda_abso, ldx_abso, NULL @ A
-	.long bcs,    lda_indy, NULL,   NULL,  ldy_zpx, lda_zpx, ldx_zpy, NULL, clv, lda_absy, tsx,   NULL,   ldy_absx, lda_absx, ldx_absy, NULL @ B
-	.long cpy_imm,cmp_indx, NULL,   NULL,  cpy_zp,  cmp_zp,  dec_zp,  NULL, iny, cmp_imm,  dex,   NULL,   cpy_abso, cmp_abso, dec_abso, NULL @ C
-	.long bne,    cmp_indy, NULL,   NULL,  NULL,    cmp_zpx, dec_zpx, NULL, cld, cmp_absy, NULL,  NULL,   NULL,     cmp_absx, dec_absx, NULL @ D
-	.long cpx_imm,sbc_indx, NULL,   NULL,  cpx_zp,  sbc_zp,  inc_zp,  NULL, inx, sbc_imm,  nop,   sbc_imm,cpx_abso, sbc_abso, inc_abso, NULL @ E
-	.long beq,    sbc_indy, NULL,   NULL,  NULL,    sbc_zpx, inc_zpx, NULL, sed, sbc_absy, nop,   NULL,   NULL,     sbc_absx, inc_absx, NULL @ F 
-
-
-
-
-.macro instruFetch
-	ldr r1, =opcodeJumpTable
-	ldr r1, [r1, r0] @ get address 
-	bl  r1
-.endm
+	.long brk,    ora_indx, ILOP,   ILOP,  ILOP,    ora_zp,  asl_zp,  ILOP, php, ora_imm,  asl_a, ILOP,   ILOP,     ora_abso, asl_abso, ILOP @ 0
+	.long bpl,    ora_indy, ILOP,   ILOP,  ILOP,    ora_zpx, asl_zpx, ILOP, clc, ora_absy, ILOP,  ILOP,   ILOP,     ora_absx, asl_absx, ILOP @ 1
+	.long jsr,    and_indx, ILOP,   ILOP,  bit_zp,  and_zp,  rol_zp,  ILOP, plp, and_imm,  rol_a, ILOP,   bit_abso, and_abso, rol_abso, ILOP @ 2  
+	.long bmi,    and_indy, ILOP,   ILOP,  ILOP,    and_zpx, rol_zpx, ILOP, sec, and_absy, ILOP,  ILOP,   ILOP,     and_absx, rol_absx, ILOP @ 3
+	.long rti,    eor_indx, ILOP,   ILOP,  ILOP,    eor_zp,  lsr_zp,  ILOP, pha, eor_imm,  lsr_a, ILOP,   jmp_abso, eor_abso, lsr_abso, ILOP @ 4
+	.long bvc,    eor_indy, ILOP,   ILOP,  ILOP,    eor_zpx, lsr_zpx, ILOP, cli, eor_absy, ILOP,  ILOP,   ILOP,     eor_absx, lsr_absx, ILOP @ 5
+	.long rts,    adc_indx, ILOP,   ILOP,  ILOP,    adc_zp,  ror_zp,  ILOP, pla, adc_imm,  ror_a, ILOP,   jmp_ind,  adc_abso, ror_abso, ILOP @ 6
+	.long bvs,    adc_indy, ILOP,   ILOP,  ILOP,    adc_zpx, ror_zpx, ILOP, sei, adc_absy, ILOP,  ILOP,   ILOP,     adc_absx, ror_absx, ILOP @ 7
+	.long ILOP,   sta_indx, ILOP,   ILOP,  sty_zp,  sta_zp,  stx_zp,  ILOP, dey, ILOP,     txa,   ILOP,   sty_abso, sta_abso, stx_abso, ILOP @ 8
+	.long bcc,    sta_indy, ILOP,   ILOP,  sty_zpx, sta_zpx, stx_zpy, ILOP, tya, sta_absy, txs,   ILOP,   ILOP,     sta_absx, ILOP,     ILOP @ 9
+	.long ldy_imm,lda_indx, ldx_imm,ILOP,  ldy_zp,  lda_zp,  ldx_zp,  ILOP, tay, lda_imm,  tax,   ILOP,   ldy_abso, lda_abso, ldx_abso, ILOP @ A
+	.long bcs,    lda_indy, ILOP,   ILOP,  ldy_zpx, lda_zpx, ldx_zpy, ILOP, clv, lda_absy, tsx,   ILOP,   ldy_absx, lda_absx, ldx_absy, ILOP @ B
+	.long cpy_imm,cmp_indx, ILOP,   ILOP,  cpy_zp,  cmp_zp,  dec_zp,  ILOP, iny, cmp_imm,  dex,   ILOP,   cpy_abso, cmp_abso, dec_abso, ILOP @ C
+	.long bne,    cmp_indy, ILOP,   ILOP,  ILOP,    cmp_zpx, dec_zpx, ILOP, cld, cmp_absy, ILOP,  ILOP,   ILOP,     cmp_absx, dec_absx, ILOP @ D
+	.long cpx_imm,sbc_indx, ILOP,   ILOP,  cpx_zp,  sbc_zp,  inc_zp,  ILOP, inx, sbc_imm,  nop,   sbc_imm,cpx_abso, sbc_abso, inc_abso, ILOP @ E
+	.long beq,    sbc_indy, ILOP,   ILOP,  ILOP,    sbc_zpx, inc_zpx, ILOP, sed, sbc_absy, nop,   ILOP,   ILOP,     sbc_absx, inc_absx, ILOP @ F 
 
 
 @ -----------------------
@@ -286,8 +277,11 @@ CPU_Execute:
 CPU_Loop:
 	ldr r1, =memory
 	ldrb r0, [r1, nesPC] 
-	add nesPC, #0x1 @ r0 = memory[nesPC], nesPC++
-	instruFetch
+	add nesPC, nesPC, #0x1 @ r0 = memory[nesPC], nesPC++
+	@ Instruction Fetch
+	ldr r1, =opcodeJumpTable
+	ldr r2, [r1, r0]
+	blx r2
 
 end_execute:
 	cmp nesTick, #TOTAL_CYCLE
@@ -359,7 +353,7 @@ brk:
 	add nesTick, nesTick, #0x7
 
 	mov pc, r12 
-
+.ltorg
 @ ---------------------- ORA INDX ------------------------------
 
 ora_indx: @ TODO: penalty_op
@@ -2313,7 +2307,7 @@ bcc:
 	beq bcc_eq
 	b bcc_end
 
-bbc_eq:
+bcc_eq:
 	mov r0, nesPC
 	add r1, nesPC, nesEA
 	and r0, #0xFF00
@@ -3368,7 +3362,7 @@ inc_zp:
 	add r1, r0, #0x1
 	mov r0, nesEA
 	bl writeMemory
-	bl readMemory
+	bl memoryRead
 
 	cmp r0, #0x0
 	bicne nesF, nesF, #zeroFlag
@@ -3512,7 +3506,7 @@ inc_abso:
 	add r1, r0, #0x1
 	mov r0, nesEA
 	bl writeMemory
-	bl readMemory
+	bl memoryRead
 
 	cmp r0, #0x0
 	bicne nesF, nesF, #zeroFlag
@@ -3635,7 +3629,7 @@ inc_zpx:
 	add r1, r0, #0x1
 	mov r0, nesEA
 	bl writeMemory
-	bl readMemory
+	bl memoryRead
 
 	cmp r0, #0x0
 	bicne nesF, nesF, #zeroFlag
@@ -3743,7 +3737,7 @@ inc_absx:
 	add r1, r0, #0x1
 	mov r0, nesEA
 	bl writeMemory
-	bl readMemory
+	bl memoryRead
 
 	cmp r0, #0x0
 	bicne nesF, nesF, #zeroFlag
@@ -3755,4 +3749,11 @@ inc_absx:
 
 	add nesTick, nesTick, #0x7
 
+	mov pc, lr
+
+
+@ ----------------- ILEGAL OPCODE ---------------------
+
+ILOP:
+	
 	mov pc, lr

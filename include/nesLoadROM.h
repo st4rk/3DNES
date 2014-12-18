@@ -6,7 +6,7 @@
 #include <string.h>
 #include <3ds.h>
 #include "nesGlobal.h"
-#include "6502core.h"
+#include "nes6502.h"
 
 u8 PRG;
 u8 CHR;

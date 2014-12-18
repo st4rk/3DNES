@@ -5,7 +5,7 @@
 #include "nesPPU.h"
 #include "nesSystem.h"
 #include "nesLoadROM.h"
-#include "6502core.h"
+#include "nes6502.h"
 
 
 #include "utils.h"
@@ -114,7 +114,7 @@ void INIT_EMULATION() {
 	if (SRAM == 1) 
 		SRAM_LOADSTATE();
 
-	CPU_reset();
+	CPU_Reset();
 	RESET_INPUT();
 	do_mirror(MIRRORING);
 
@@ -208,7 +208,7 @@ void NES_MAINLOOP() {
 					for (scanline = 0; scanline < 262; scanline++) {
 						if (MAPPER == 5) mmc5_hblank(scanline);
 
-						CPU_execute(line_ticks);
+						CPU_Execute(line_ticks);
 
 						if (scanline < 240) {
 							if (MAPPER == 4) mmc3_hblank(scanline);

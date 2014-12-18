@@ -5,7 +5,7 @@
 #include <3ds.h>
 #include "nesGlobal.h"
 #include "FileSystem.h"
-#include "6502core.h"
+#include "nes6502.h"
 
 u32 PAD1_UP;
 u32 PAD1_DOWN;

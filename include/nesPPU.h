@@ -4,7 +4,7 @@
 #include <3ds/gfx.h>
 
 #include "nesGlobal.h"
-#include "6502core.h"
+#include "nes6502.h"
 
 
 extern u32 ppu_control1;

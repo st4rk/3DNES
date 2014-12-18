@@ -1,4 +1,4 @@
-#include "6502core.h"
+#include "nes6502.h"
 // TODO: Write in ASM
 
 int mmc1_reg[4];
