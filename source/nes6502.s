@@ -330,7 +330,7 @@ CPU_Reset:
 @ ------------------------- BRK --------------------------------
 
 brk:
-	mov r1, lr
+	mov r12, lr
 	
 	add nesPC, #0x1
 	@ writeMemory
@@ -348,13 +348,14 @@ brk:
 	and r0, r0, #0xFF00
 	orr nesPC, nesPC, r0
 
-	add nesTick, #0x7
-	mov pc, r1 
+	add nesTick, nesTick, #0x7
+
+	mov pc, r12 
 
 @ ---------------------- ORA INDX ------------------------------
 
 ora_indx: @ TODO: penalty_op
-	mov r12, lr
+
 
 	INDX
 	mov r0, nesEA
@@ -362,22 +363,22 @@ ora_indx: @ TODO: penalty_op
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst nesA, #signFlag 
-	orrne nesF, #signFlag 
+	orrne nesF, nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x6
 
-	mov pc, r12
+	mov pc, lr
 
 
 @ --------------------- ORA ZP ---------------------------------
 
 ora_zp:
-	mov r12, lr
+
 	ZP
 
 	mov r0, nesEA
@@ -385,31 +386,31 @@ ora_zp:
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, #zeroFlag
 
 	tst nesA, #signFlag
-	orrne nesF, #signFlag
+	orrne nesF, nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
+	add nesTick, nesTick, #0x3
 
-	add nesTick, #0x3
-
-	mov pc, r12
+	mov pc, lr
 
 
 @ -------------------- ASL ZP ---------------------------------
 
 asl_zp: 
-	mov r12, lr
+	
 	ZP
 
 	mov r0, nesEA
 	bl memoryRead
 
-	tst r0, #signFlag
-	orrne nesF, #carryFlag
+	tst r0, #0x80
+	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
+
 	mov r0, r0, lsl #1
 
 	mov r1, r0
@@ -418,73 +419,82 @@ asl_zp:
 
 	cmp r0, #0x0
 	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #signFlag
+	orreq nesF, nesF, #signFlag
 
 	tst r0, #signFlag
-	orrne nesF, #signFlag
-	biceq nesF, nesF, #signFlag
+	orrne nesF, nesF, #signFlag 
+	biceq nesF, nesF, #signFlag 
 
 
-	add nesTick, #0x5
+	add nesTick, nesTick, #0x5
 
-	mov pc, r12
+	mov pc, lr
 
 
 @ -------------------  PHP -------------------------------------
 
 php:
-	mov r12, lr
+	
 
 	add r0, nesStack, #0x100
 	orr r1, nesF, #sInterruptFlag
 	bl writeMemory
 	sub nesStack, #0x1
 
-	add nesTick, #0x3
+	add nesTick, nesTick, #0x3
 
-	mov pc, r12
+	mov pc, lr
 
 
 @ ------------------ ORA IMM ----------------------------------
 
 ora_imm: @ TODO: penalty_op
-	mov r12, lr
+	
 	IMM 
 
 	mov r0, nesEA
 	bl readMemory
 	orr nesA, nesA, r0
 
-	add nesTick, #0x2
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
-	mov pc, r12
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag 
+	biceq nesF, nesF, #signFlag 
+
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
 
 
 @ ----------------- ASL_A   ----------------------------------
 
 asl_a:
-	mov r12, lr
-
+	
 	tst nesA, #0x80
-	orrne nesF, #carryFlag
-	biceq nesF, svc 0x #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
 
 	mov nesA, nesA, lsl #0x1 
 
 	cmp nesA, #0x0
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst nesA, #signFlag 
-	orrne nesF, #signFlag
-	biceq nesF, nesF, #signFlag
+	orrne nesF, nesF, #signFlag 
+	biceq nesF, nesF, #signFlag 
 
-	mov pc, r12
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
 
 
 @ ---------------- ORA ABSO -----------------------------
 ora_abso: @ TODO: penalty_op
-	mov r12, lr
+
 	ABSO
 
 	mov r0, nesEA
@@ -492,29 +502,29 @@ ora_abso: @ TODO: penalty_op
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst nesA, #signFlag 
-	orrne nesF, #signFlag 
+	orrne nesF, nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x6
 
-	mov pc, r12
+	mov pc, lr
 
 @ ---------------- asl_abso ------------------------------
 asl_abso:
-	mov r12, lr
 
 	ABSO
 
 	mov r0, nesEA
 	bl memoryRead
 
-	tst r0, #signFlag
-	orrne nesF, #carryFlag
+	tst r0, #0x80
+	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
+
 	mov r0, r0, lsl #1
 
 	mov r1, r0
@@ -522,33 +532,31 @@ asl_abso:
 	bl writeMemory
 
 	cmp r0, #0x0
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #signFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst r0, #signFlag
-	orrne nesF, #signFlag
-	biceq nesF, nesF, #signFlag
+	orrne nesF, nesF, #signFlag 
+	biceq nesF, nesF, #signFlag 
 
-
-	add nesTick, #0x6
-
-	mov pc, r12
-
+	add nesTick, nesTick, #0x6
+	
+	mov pc, lr
 @ -------------- BPL ----------------------------------
 
 bpl:
-	mov r12, lr
+
 	REL
 
-	tst nesF, #signFlag
+	tst nesF, #0x80
 	beq bpl_eq
 	b  bpl_end
 
 bpl_eq:
 	mov r0, nesPC
 	add r1, nesPC, nesEA
-	and r0, #0xFF00
-	and r1, #0xFF00
+	and r0, r0, #0xFF00
+	and r1, r1, #0xFF00
 
 	cmp r0, r1 @ if ((nesPC & 0xFF00) != (nesPC + nesEA) & 0xFF00))
 	addne nesTick, #0x2
@@ -557,16 +565,16 @@ bpl_eq:
 	add nesPC, nesPC, nesEA
 
 bpl_end:
-	add nesTick, #0x2
+	add nesTick, nesTick, #0x2
 
-	mov pc, r12
+	mov pc, lr
 
 
 
 @ --------------- ORA INDY ----------------------------
 
-ora_indy:
-	mov r12, lr 
+ora_indy: @ TODO: Penalty_OP
+	
 	INDY
 
 	mov r0, nesEA
@@ -574,22 +582,21 @@ ora_indy:
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst nesA, #signFlag 
-	orrne nesF, #signFlag 
+	orrne nesF, nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x5
 
-	mov pc, r12
+	mov pc, lr
 
 @ -------------- ORA ZPX ------------------------------
 
 ora_zpx:
-
-	mov r12, lr 
+	
 	ZPX
 
 	mov r0, nesEA
@@ -597,16 +604,16 @@ ora_zpx:
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
-	tst nesA, #0x80
-	orrne nesF, #0x80
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
 	biceq nesF, nesF, #signFlag 
 
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x4
 
-	mov pc, r12
+	mov pc, lr
 
 
 @ -------------- ASL ZPX ------------------------------
@@ -619,9 +626,10 @@ asl_zpx:
 	mov r0, nesEA
 	bl memoryRead
 
-	tst r0, #signFlag
-	orrne nesF, #carryFlag
+	tst r0, #0x80
+	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
+	
 	mov r0, r0, lsl #1
 
 	mov r1, r0
@@ -629,31 +637,27 @@ asl_zpx:
 	bl writeMemory
 
 	cmp r0, #0x0
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #signFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst r0, #signFlag
-	orrne nesF, #signFlag
+	orrne nesF, nesF, #signFlag
 	biceq nesF, nesF, #signFlag
 
-
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x6
 
 	mov pc, r12
 
 @ ------------- CLC ---------------------------------
 clc:
-	mov r12, lr
-
 	bic nesF, nesF, #0x1
-	add nesTick, #0x2
-
-	mov pc, r12
+	add nesTick, nesTick, #0x2
+	mov pc, lr
 
 @ ------------- ORA_ABSY -----------------------------
 
 ora_absy:
-	mov r12, lr 
+	
 	ABSY
 
 	mov r0, nesEA
@@ -661,21 +665,21 @@ ora_absy:
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst nesA, #signFlag 
-	orrne nesF, #signFlag 
+	orrne nesF, nesF, #signFlag 
 	biceq nesF, nesF, #signFlag 
 
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x4
 
-	mov pc, r12
+	mov pc, lr
 
 @ ---------------- ORA ABSX --------------------------
 
 ora_absx:
-	mov r12, lr 
+
 	ABSX
 
 	mov r0, nesEA
@@ -683,21 +687,20 @@ ora_absx:
 	orr nesA, r0
 
 	cmp nesA, #0x0 
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst nesA, #signFlag
-	orrne nesF, #signFlag
+	orrne nesF, nesF, #signFlag
 	biceq nesF, nesF, #signFlag 
 
-	add nesTick, #0x6
+	add nesTick, nesTick, #0x4
 
-	mov pc, r12
+	mov pc, lr
 
 @ --------------- ASL ABSX ---------------------------
 
 asl_absx:
-	mov r12, lr
 
 	ABSX
 
@@ -705,7 +708,7 @@ asl_absx:
 	bl memoryRead
 
 	tst r0, #signFlag
-	orrne nesF, #carryFlag
+	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 	mov r0, r0, lsl #1
 
@@ -714,21 +717,19 @@ asl_absx:
 	bl writeMemory
 
 	cmp r0, #0x0
-	bicne nesF, nesF, #zeroFlag
-	orreq nesF, #signFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
 
 	tst r0, #signFlag
-	orrne nesF, #signFlag
+	orrne nesF, nesF, #signFlag
 	biceq nesF, nesF, #signFlag
 
+	add nesTick, nesTick, #0x7
 
-	add nesTick, #0x6
-
-	mov pc, r12
+	mov pc, lr
 
 @ ---------------------- JSR --------------------------------
 jsr:
-	mov r12, lr
 
 	add r0, nesStack, #0x100
 	sub r1, nesPC, #0x1
@@ -743,11 +744,13 @@ jsr:
 
 	mov nesPC, nesEA
 
+	add nesTick, nesTick, #0x6
 
-	mov pc, r12
+	mov pc, lr
+
 @ ---------------------- AND INDX ---------------------------
 and_indx:
-	mov r12, lr
+
 	
 	INDX
 
@@ -757,39 +760,1464 @@ and_indx:
 	and nesA, nesA, r0
 
 	cmp nesEA, #0x0
-	bicne nesP, nesP, #zeroFlag
-	orreq nesP, nesP, #zeroFlag
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesEA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ ---------------------- BIT ZP -----------------------------
+bit_zp:
+
+	ZP
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and r1, r0, nesA
+
+	cmp r1, #0x0
+	orreq nesF, nesF, #zeroFlag
+	bicne nesF, nesF, #zeroFlag
+
+	tst r0, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	tst r0, #overflowFlag
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	add nesTick, nesTick, #0x3
+
+	mov pc, lr
+
+@ ---------------------- AND ZP -----------------------------
+and_zp: @ todo penalty_op
+
+	ZP
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x3
+
+	mov pc, lr
+
+@ ---------------------- ROL ZP -----------------------------
+rol_zp:
+
+	ZP
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst nesF, #0x1
+	beq rol_eq
+
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+	orr r0, r0, #0x1
+	b rol_end
+
+rol_eq:
+	
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+
+rol_end:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x5
+
+	mov pc, lr
+@ ---------------------- PLP --------------------------------
+plp:
+
+	add nesS, nesS, #0x1
+	add r0, nesS, #0x100
+	bl memoryRead
+	orr nesF, r0, #0x20
+
+	add nesTick, nesTick, #0x4
+	
+	mov pc, lr
+
+@ ---------------------- AND IMM ----------------------------
+and_imm:
+
+	IMM
+	
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ ---------------------- ROL A ------------------------------
+rol_a:
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst nesF, #0x1
+	beq rol_a_eq
+
+	tst r0, #0x80
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov nesA, nesA, LSL #0x1
+	orr nesA, nesA, #0x1
+	b rol_a_end
+
+rol_a_eq:
+	tst r0, #0x80
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov nesA, nesA, LSL #0x1
+
+rol_a_end:
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+	
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ ---------------------- BIT ABSO ---------------------------
+bit_abso:
+
+	ABSO
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and r1, r0, nesA
+
+	cmp r1, #0x0
+	orreq nesF, nesF, #zeroFlag
+	bicne nesF, nesF, #zeroFlag
+
+	tst r0, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	tst r0, #overflowFlag
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+
+@ ---------------------- AND ABSO ---------------------------
+and_abso:
+	
+	ABSO
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesEA, #0x0
+	biceq nesP, nesP, #zeroFlag
+	orrne nesP, nesP, #zeroFlag
 
 	tst nesEA, #signFlag
 	orrne nesP, nesP, #signFlag
 	biceq nesP, nesP, #signFlag
 
-	mov pc, r12
+	add nesTick, nesTick, #0x4
 
-@ ---------------------- BIT ZP -----------------------------
-bit_zp:
-
-@ ---------------------- AND ZP -----------------------------
-and_zp:
-
-@ ---------------------- ROL ZP -----------------------------
-rol_zp:
-
-@ ---------------------- PLP --------------------------------
-plp:
-
-@ ---------------------- AND IMM ----------------------------
-and_imm:
-
-
-@ ---------------------- ROL A ------------------------------
-rol_a:
-
-@ ---------------------- BIT ABSO ---------------------------
-bit_abso:
-
-@ ---------------------- AND ABSO ---------------------------
-and_abso:
+	mov pc, lr
 
 @ ---------------------- ROL ABSO ---------------------------
 rol_abso:  
+	
+	ABSO
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst nesF, #0x1
+	bne rol_eq_abso
+
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+	orr r0, r0, #0x1
+	b rol_end_abso
+
+rol_eq_abso:
+	
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+
+rol_end_abso:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ -------------------- BMI ------------------------------
+bmi:
+
+	REL
+
+	mov r0, nesP
+	and r0, r0, #0x80
+
+	cmp r0, #0x80
+	beq bmi_eq
+	b bmi_end
+bmi_eq:
+
+	and r0, nesPC, #0xFF00
+	add r1, nesPC, nesEA
+	and r1, r1, #0xFF00
+
+	cmp r0, r1
+	addne nesTick, #0x2
+	addeq nesTick, #0x1
+	add nesPC, nesPC, nesEA
+
+bmi_end:
+	add nesTick, nesTick, #0x2
+	mov pc, lr
+
+@ -------------------- AND INDY -------------------------
+and_indy:
+	
+	INDY
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesP, nesP, #zeroFlag
+	orrne nesP, nesP, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesP, nesP, #signFlag
+	biceq nesP, nesP, #signFlag
+
+	add nesTick, nesTick, #0x5
+
+	mov pc, lr
+
+@ -------------------- AND ZPX --------------------------
+and_zpx:
+	ZPX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesP, nesP, #zeroFlag
+	orrne nesP, nesP, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesP, nesP, #signFlag
+	biceq nesP, nesP, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+
+@ -------------------- ROL ZPX --------------------------
+rol_zpx: 
+
+	ZPX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst nesF, #0x1
+	beq rolx_eq
+
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+	orr r0, r0, #0x1
+	b rolx_end
+
+rolx_eq:
+	
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+
+rolx_end:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ -------------------- SEC ------------------------------
+sec:
+
+	orr nesF, nesF, #carryFlag
+	add nesTick, nesTick, #0x2
+	mov pc, lr
+
+@ -------------------- AND ABSY -------------------------
+and_absy:
+
+	ABSY
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesEA, #0x0
+	biceq nesP, nesP, #zeroFlag
+	orrne nesP, nesP, #zeroFlag
+
+	tst nesEA, #signFlag
+	orrne nesP, nesP, #signFlag
+	biceq nesP, nesP, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+
+@ -------------------- AND ABSX -------------------------
+and_absx:
+
+	ABSX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	and nesA, nesA, r0
+
+	cmp nesEA, #0x0
+	biceq nesP, nesP, #zeroFlag
+	orrne nesP, nesP, #zeroFlag
+
+	tst nesEA, #signFlag
+	orrne nesP, nesP, #signFlag
+	biceq nesP, nesP, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+
+@ -------------------- ROL ABSX -------------------------
+rol_absx:
+
+	ABSX
+
+	mov r0, nesEA
+	bl memoryRead
+
+	tst nesF, #0x1
+	beq rolx_eq
+
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+	orr r0, r0, #0x1
+	b rol_xend
+
+rol_xeq:
+	
+	tst r0, #signFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSL #0x1
+
+rol_xend:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x7
+
+	mov pc, lr
+
+
+@ -------------------- RTI -------------------------
+rti:
+
+	add nesStack, nesStack, #0x1
+	add r0, nesStack, #0x100
+	bl memoryRead
+
+	orr nesF, r0, #0x20
+
+	add nesStack, nesStack, #0x1
+	add r0, nesStack, #0x100
+	bl readMemory
+	add nesStack, nesStack, #0x1
+
+	add r0, nesStack, #0x100
+	bl readMemory
+
+	and r0, r0, #0xFF00
+	orr nesPC, nesPC, r0
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ -------------------- EOR INDX -------------------------
+eor_indx: @ TODO: penalty_op
+
+	INDX
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ -------------------- EOR ZP -------------------------
+eor_zp: @ TODO: penalty OP
+
+	ZP
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	mov pc, lr
+@ -------------------- LSR ZP -------------------------
+lsr_zp: 
+
+	ZP
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst r0, #0x1
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSR #0x1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	mov pc, lr
+@ -------------------- PHA -------------------------
+pha:
+	
+	add r0, nesStack, #0x100
+	mov r1, nesA
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+
+	add nesTick, nesTick, #0x3
+
+	mov pc, lr
+
+@ -------------------- EOR IMM -------------------------
+eor_imm: @ TODO: Penalty_OP  
+
+	IMM
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ -------------------- LSR A -------------------------
+lsr_a:
+
+	tst nesA, #0x1
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov nesA, nesA, ASR #0x1
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ -------------------- JMP ABSO -------------------------
+jmp_abso: 
+	
+	ABSO
+
+	mov nesPC, nesEA
+
+	add nesTick, nesTick, #0x3
+
+	mov pc, lr
+
+@ -------------------- EOR ABSO -------------------------
+eor_abso: 
+
+	ABSO
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ -------------------- LSR ABSO-------------------------
+lsr_abso:
+
+	ABSO
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst r0, #0x1
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSR #0x1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+@ --------------------   BVC   -------------------------
+bvc:
+
+	REL
+
+	tst nesF, #overflowFlag
+	beq bvc_fun
+	b bvc_end
+
+bvc_fun:
+	and r0, nesPC, #0xFF00
+	add r1, nesPC, nesEA
+	and r1, r1, #0xFF00
+	cmp r0, r1
+	addne nesTick, nesTick, #0x2
+	addeq nesTick, nesTick, #0x1
+	add nesPC, nesPC, nesEA
+
+bvc_end:
+	add nesTick, nesTick, #0x2
+	mov pc, lr
+
+@ -------------------- EOR INDY -------------------------
+eor_indy: @ TODO: Penalty_Addr
+
+	INDY
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x5
+
+	mov pc, lr
+
+@ -------------------- EOR ZPX -------------------------
+eor_zpx: 
+	
+	ZPX
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ -------------------- LSR ZPX -------------------------
+lsr_zpx: 
+	
+	ZPX
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst r0, #0x1
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSR #0x1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+@ --------------------   CLI   -------------------------
+cli:	
+
+	bic nesF, nesF, #interruptFlag
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+@ -------------------- EOR ABSY -------------------------
+eor_absy:
+
+	ABSY
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ -------------------- EOR ABSX -------------------------
+eor_absx: 
+
+	ABSX
+
+	mov r0, nesEA
+	bl readMemory
+
+	eor nesA, nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ -------------------- LSR ABSX -------------------------
+lsr_absx:
+	
+	ABSX
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst r0, #0x1
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+	mov r0, r0, LSR #0x1
+
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #0x80
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x7
+
+	mov pc, lr
+
+@ ------------------ RTS -------------------------
+rts:
+
+
+	add nesStack, nesStack, #0x1
+	add r0, nesStack, #0x100
+	bl memoryRead
+	mov nesPC, r0
+	add nesStack, nesStack, #0x1
+	add r0, nesStack, #0x100
+	bl memoryRead
+
+	and r0, r0, #0xFF00
+	orr nesPC, nesPC, r0
+	add nesPC, nesPC, #0x1
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ ------------------ ADC INDX --------------------
+adc_indx: @ TODO PENALTY_OP
+	
+	INDX
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+
+@ ------------------ ADC ZP ----------------------
+adc_zp:
+	ZP
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x3
+
+	mov pc, lr
+@ ------------------ ROR ZP ----------------------
+ror_zp:  
+	ZP
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst nesF, #carryFlag
+	bne ror_zp_ne
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+
+	b ror_zp_end
+ror_zp_ne:
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+	orr r0, r0, #signFlag
+
+ror_zp_end:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x5
+
+	mov pc, lr
+
+@ ------------------ PLA -------------------------
+pla:
+	add nesStack, nesStack, #0x1
+	add r0, nesStack, #0x100
+	bl memoryRead
+	mov nesA, r0
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick #0x4
+
+	mov pc, lr
+
+@ ------------------ ADC IMM ---------------------
+adc_imm:  
+	IMM
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ ------------------ ROR_A -----------------------
+ror_a:
+
+	tst nesF, #carryFlag
+	bne ror_a_ne
+
+	tst nesA, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag	
+
+	mov nesA, nesA, ASR #0x1
+
+	b ror_zp_end
+ror_a_ne:
+
+	tst nesA, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov nesA, nesA, ASR #0x1
+	orr nesA, nesA, #signFlag
+
+ror_a_end:
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ ------------------ JMP IND ---------------------
+jmp_ind:  
+	IND
+
+	mov nesPC, nesEA
+	add nesTick, nesTick, #0x3
+
+	mov pc, lr
+
+@ ------------------ ADC ABSO --------------------
+adc_abso: 
+	ABSO
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+
+@ ------------------ ROR ABSO --------------------
+ror_abso: 
+	ABSO
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst nesF, #carryFlag
+	bne ror_abso_ne
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+
+	b ror_abso_end
+ror_abso_ne:
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+	orr r0, r0, #signFlag
+
+ror_abso_end:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+@ ----------------- BVS -------------------
+bvs:
+	REL
+
+	mov r0, nesF
+	and r0, r0, #overflowFlag
+
+	tst r0, #overflowFlag
+	bne bvs_ne
+	b bvs_end
+
+bvs_ne:
+	mov r0, nesPC
+	and r0, r0, #0xFF00
+	add r1, nesEA, nesPC
+	and r1, r1, #0xFF00
+
+	cmp r1, r0
+	addne nesTick, nesTick, #0x2
+	addeq nesTick, nesTick, #0x1
+	add nesPC, nesPC, nesEA
+
+bvs_end:
+	add nesTick, nesTick, #0x2
+	mov pc, lr
+
+@ ----------------- ADC INDY --------------
+adc_indy:
+	INDY
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ ----------------- ADC ZPX ---------------
+adc_zpx:
+	ZPX
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ ----------------- ROR ZPX ---------------
+ror_zpx:
+	ABSO
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst nesF, #carryFlag
+	bne ror_zpx_ne
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+
+	b ror_abso_end
+ror_zpx_ne:
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+	orr r0, r0, #signFlag
+
+ror_zpx_end:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x6
+
+	mov pc, lr
+@ ----------------- SEI -------------------
+sei: 
+	orr nesF, nesF, #interruptFlag
+	add nesTick, nesTick, #0x2
+
+	mov pc, lr
+
+@ ----------------- ADC ABSY --------------
+adc_absy: 
+	ABSY
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ ----------------- ADC ABSX --------------
+adc_absx:
+	ABSX
+	
+	mov r0, nesEA
+	bl readMemory
+
+	and r1, nesF, #carryFlag
+	add r2, nesA, r0
+	add r2, r2, r1
+
+	cmp r2, #0xFF
+	orrgt nesF, nesF, #carryFlag
+	bicle nesF, nesF, #carryFlag
+
+	eor r3, nesA, r0
+	mvn r3, r3
+
+	eor r4, nesA, r2
+	and r4, r4, #0x80
+
+	tst r3, r4
+	orrne nesF, nesF, #overflowFlag
+	biceq nesF, nesF, #overflowFlag
+
+	mov nesA, r2
+
+	cmp nesA, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst nesA, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x4
+
+	mov pc, lr
+@ ----------------- ROR ABSX --------------
+ror_absx: @ penalty_addr
+	ABSX
+
+	mov r0, nesEA
+	bl readMemory
+
+	tst nesF, #carryFlag
+	bne ror_absx_ne
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+
+	b ror_abso_end
+ror_absx_ne:
+
+	tst r0, #carryFlag
+	orrne nesF, nesF, #carryFlag
+	biceq nesF, nesF, #carryFlag
+
+	mov r0, r0, ASR #0x1
+	orr r0, r0, #signFlag
+
+ror_absx_end:
+	mov r1, r0
+	mov r0, nesEA
+	bl writeMemory
+
+	cmp r1, #0x0
+	biceq nesF, nesF, #zeroFlag
+	orrne nesF, nesF, #zeroFlag
+
+	tst r1, #signFlag
+	orrne nesF, nesF, #signFlag
+	biceq nesF, nesF, #signFlag
+
+	add nesTick, nesTick, #0x7
+
+	mov pc, lr
+
+@ ----------------- STA INDX -------------------
+sta_indx:
+
+@ ----------------- STY ZP ---------------------
+sty_zp:
+
+@ ----------------- STA ZP ---------------------
+sta_zp:
+
+@ ----------------- STX ZP ---------------------
+stx_zp:
+
+@ ----------------- DEY ------------------------
+dey:
+
+@ ----------------- TXA ------------------------
+txa:
+
+@ ----------------- STY ABSO -------------------
+sty_abso:
+
+@ ----------------- STA ABSO -------------------
+sta_abso:
+
+@ ----------------- STX ABSO -------------------
+stx_abso:
