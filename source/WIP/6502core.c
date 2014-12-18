@@ -18,10 +18,17 @@ bool penalty_op, penalty_addr;
 
 unsigned char memory[65536];
 
-
-
-
 /* Instruções */
+
+    penalty_op = true;
+	unsigned char data = memoryRead(EA) ^ 0xFF;
+	temp = A + data + (P & 0x1);
+	if (temp > 0xFF) {P |= 0x1;} else {P &= ~0x1;}
+	if ((~(A ^ data)) & (A ^ temp) & 0x80) {P |= 0x40;} else {P &= ~0x40;}
+	A = temp & 0xFF;
+    if (A) {P &= ~0x2;} else {P |= 0x2;}
+	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
+	tick_count += 6;
 
 void adc_imm() {
 	EA = PC++;
@@ -327,7 +334,7 @@ void beq() {
 void bit_zp() {
 	EA = memoryRead(PC++);
 	unsigned char data = memoryRead(EA);
-	if (!(data & A)) {P |= 0x2;} else {P &= ~0x2;}
+	if ((data & A)) {P |= 0x2;} else {P &= ~0x2;}
 	if (data & 0x80) {P |= 0x80;} else {P &= ~0x80;}
 	if (data & 0x40) {P |= 0x40;} else {P &= ~0x40;}
 	tick_count += 3;
@@ -1140,6 +1147,8 @@ void ora_indx() {
 	EA = memoryRead(temp & 0xFF) + (memoryRead((temp + 1) & 0xFF) * 0x100);
     penalty_op = true;
 	unsigned char data = memoryRead(EA);
+
+	
 	A |= data;
 	if (A) {P &= ~0x2;} else {P |= 0x2;}
 	if (A & 0x80) {P |= 0x80;} else {P &= ~0x80;}
