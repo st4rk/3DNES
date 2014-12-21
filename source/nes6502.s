@@ -176,12 +176,9 @@ teste:
 	add nesEA, nesY
 .endm
 
-.macro func_begin
-	push {r0-r3, pc}
-.endm	
 
 .macro func_retn
-	pop {r0-r3, lr}
+	b end_execute
 .endm
 
 .global IRQ
@@ -286,18 +283,18 @@ CPU_Execute:
 	b end_execute @ Start CPU_Loop
 
 CPU_Loop:
-	ldr r1, =memory
-	ldrb r0, [r1, nesPC] 
+	ldr r1, =memory 
+	ldrb r0, [r1, nesPC] @ opcode number
 	add nesPC, nesPC, #0x1 @ r0 = memory[nesPC], nesPC++
-	@ Instruction Fetch
-	ldr r1, =opcodeJumpTable
-	ldr r2, [r1, r0]
-
-	bl 
-
-	add nesTick, nesTick, #0x1
+	ldr r1, =opcodeJumpTable	@ Instruction Fetch
+	mov r2, #0x4
+	cmp r0, #0x0
+	movne r2, r2, LSL r0 @ r2 = r2 << r3
+	ldr r3, [r1, r2]
+	mov pc, r3
 
 end_execute:
+	add nesTick, nesTick, #0x1
 	cmp nesTick, #TOTAL_CYCLE
 	blt CPU_Loop @ if (nesTick < TOTAL_CYCLE) GoTo CPU_Loop
 
@@ -340,7 +337,6 @@ CPU_Reset:
 @ ------------------------- BRK --------------------------------
 
 brk:
-	func_begin
 	
 	add nesPC, #0x1
 	add r0, nesStack, #0x100
@@ -359,19 +355,20 @@ brk:
 	orr nesF, #interruptFlag
 	ldr nesPC, =(memory+0xFFFF)
 	ldr r0,    =(memory+0xFFFE) @ r0   = memory[0xFFFE]
-	ldrh nesPC, [nesPC]
-	ldrh r0, [r0]
+	ldr nesPC, [nesPC]
+	ldr r0, [r0]
 	and r0, r0, #0xFF00
 	orr nesPC, nesPC, r0
 
 	add nesTick, nesTick, #0x7
 
-	func_retn 
-.ltorg
+	func_retn
+
 @ ---------------------- ORA INDX ------------------------------
+.ltorg
 
 ora_indx: @ TODO: penalty_op
-	func_begin
+	
 
 	INDX
 	mov r0, nesEA
@@ -394,7 +391,7 @@ ora_indx: @ TODO: penalty_op
 @ --------------------- ORA ZP ---------------------------------
 
 ora_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -417,7 +414,7 @@ ora_zp:
 @ -------------------- ASL ZP ---------------------------------
 
 asl_zp: 
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -450,7 +447,7 @@ asl_zp:
 @ -------------------  PHP -------------------------------------
 
 php:
-	func_begin
+	
 
 	add r0, nesStack, #0x100
 	orr r1, nesF, #sInterruptFlag
@@ -465,7 +462,7 @@ php:
 @ ------------------ ORA IMM ----------------------------------
 
 ora_imm: @ TODO: penalty_op
-	func_begin
+	
 	IMM 
 
 	mov r0, nesEA
@@ -488,7 +485,7 @@ ora_imm: @ TODO: penalty_op
 @ ----------------- ASL_A   ----------------------------------
 
 asl_a:
-	func_begin
+	
 	tst nesA, #0x80
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
@@ -510,7 +507,7 @@ asl_a:
 
 @ ---------------- ORA ABSO -----------------------------
 ora_abso: @ TODO: penalty_op
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -531,7 +528,7 @@ ora_abso: @ TODO: penalty_op
 
 @ ---------------- asl_abso ------------------------------
 asl_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -561,7 +558,7 @@ asl_abso:
 @ -------------- BPL ----------------------------------
 
 bpl:
-	func_begin
+	
 	REL
 
 	tst nesF, #0x80
@@ -590,7 +587,7 @@ bpl_end:
 @ --------------- ORA INDY ----------------------------
 
 ora_indy: @ TODO: Penalty_OP
-	func_begin
+	
 	INDY
 
 	mov r0, nesEA
@@ -612,7 +609,7 @@ ora_indy: @ TODO: Penalty_OP
 @ -------------- ORA ZPX ------------------------------
 
 ora_zpx:
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -635,7 +632,7 @@ ora_zpx:
 @ -------------- ASL ZPX ------------------------------
 
 asl_zpx:
-	func_begin
+	
 
 	ZPX
 
@@ -666,7 +663,7 @@ asl_zpx:
 
 @ ------------- CLC ---------------------------------
 clc:
-	func_begin
+	
 	bic nesF, nesF, #0x1
 	add nesTick, nesTick, #0x2
 	func_retn
@@ -674,7 +671,7 @@ clc:
 @ ------------- ORA_ABSY -----------------------------
 
 ora_absy:
-	func_begin
+	
 	ABSY
 
 	mov r0, nesEA
@@ -696,7 +693,7 @@ ora_absy:
 @ ---------------- ORA ABSX --------------------------
 
 ora_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -718,7 +715,7 @@ ora_absx:
 @ --------------- ASL ABSX ---------------------------
 
 asl_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -747,7 +744,7 @@ asl_absx:
 
 @ ---------------------- JSR --------------------------------
 jsr:
-	func_begin
+	
 	add r0, nesStack, #0x100
 	sub r1, nesPC, #0x1
 	mov r1, r1, ASR #8
@@ -767,7 +764,7 @@ jsr:
 
 @ ---------------------- AND INDX ---------------------------
 and_indx:
-	func_begin	
+		
 	INDX
 
 	mov r0, nesEA
@@ -789,7 +786,7 @@ and_indx:
 
 @ ---------------------- BIT ZP -----------------------------
 bit_zp:
-	func_begin
+	
 
 	ZP
 
@@ -816,7 +813,7 @@ bit_zp:
 
 @ ---------------------- AND ZP -----------------------------
 and_zp: @ todo penalty_op
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -838,7 +835,7 @@ and_zp: @ todo penalty_op
 
 @ ---------------------- ROL ZP -----------------------------
 rol_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -879,7 +876,7 @@ rol_end:
 	func_retn
 @ ---------------------- PLP --------------------------------
 plp:
-	func_begin
+	
 	add nesStack, nesStack, #0x1
 	add r0, nesStack, #0x100
 	bl memoryRead
@@ -891,7 +888,7 @@ plp:
 
 @ ---------------------- AND IMM ----------------------------
 and_imm:
-	func_begin
+	
 	IMM
 	
 	mov r0, nesEA
@@ -913,7 +910,7 @@ and_imm:
 
 @ ---------------------- ROL A ------------------------------
 rol_a:
-	func_begin
+	
 	mov r0, nesEA
 	bl memoryRead
 
@@ -948,7 +945,7 @@ rol_a_end:
 
 @ ---------------------- BIT ABSO ---------------------------
 bit_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -974,7 +971,7 @@ bit_abso:
 
 @ ---------------------- AND ABSO ---------------------------
 and_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -996,7 +993,7 @@ and_abso:
 
 @ ---------------------- ROL ABSO ---------------------------
 rol_abso:  
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -1038,7 +1035,7 @@ rol_end_abso:
 
 @ -------------------- BMI ------------------------------
 bmi:
-	func_begin
+	
 	REL
 
 	mov r0, nesF
@@ -1064,7 +1061,7 @@ bmi_end:
 
 @ -------------------- AND INDY -------------------------
 and_indy:
-	func_begin
+	
 	INDY
 
 	mov r0, nesEA
@@ -1086,7 +1083,7 @@ and_indy:
 
 @ -------------------- AND ZPX --------------------------
 and_zpx:
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -1108,7 +1105,7 @@ and_zpx:
 
 @ -------------------- ROL ZPX --------------------------
 rol_zpx: 
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -1150,14 +1147,14 @@ rolx_end:
 
 @ -------------------- SEC ------------------------------
 sec:
-	func_begin
+	
 	orr nesF, nesF, #carryFlag
 	add nesTick, nesTick, #0x2
 	func_retn
 
 @ -------------------- AND ABSY -------------------------
 and_absy:
-	func_begin
+	
 	ABSY
 
 	mov r0, nesEA
@@ -1179,7 +1176,7 @@ and_absy:
 
 @ -------------------- AND ABSX -------------------------
 and_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -1201,7 +1198,7 @@ and_absx:
 
 @ -------------------- ROL ABSX -------------------------
 rol_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -1244,7 +1241,7 @@ rol_xend:
 
 @ -------------------- RTI -------------------------
 rti:
-	func_begin
+	
 	add nesStack, nesStack, #0x1
 	add r0, nesStack, #0x100
 	bl memoryRead
@@ -1268,7 +1265,7 @@ rti:
 
 @ -------------------- EOR INDX -------------------------
 eor_indx: @ TODO: penalty_op
-	func_begin
+	
 	INDX
 
 	mov r0, nesEA
@@ -1290,7 +1287,7 @@ eor_indx: @ TODO: penalty_op
 
 @ -------------------- EOR ZP -------------------------
 eor_zp: @ TODO: penalty OP
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -1309,7 +1306,7 @@ eor_zp: @ TODO: penalty OP
 	func_retn
 @ -------------------- LSR ZP -------------------------
 lsr_zp: 
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -1335,7 +1332,7 @@ lsr_zp:
 	func_retn
 @ -------------------- PHA -------------------------
 pha:
-	func_begin
+	
 	add r0, nesStack, #0x100
 	mov r1, nesA
 	bl writeMemory
@@ -1347,7 +1344,7 @@ pha:
 
 @ -------------------- EOR IMM -------------------------
 eor_imm: @ TODO: Penalty_OP  
-	func_begin
+	
 	IMM
 
 	mov r0, nesEA
@@ -1369,7 +1366,7 @@ eor_imm: @ TODO: Penalty_OP
 
 @ -------------------- LSR A -------------------------
 lsr_a:
-	func_begin
+	
 	tst nesA, #0x1
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
@@ -1390,7 +1387,7 @@ lsr_a:
 
 @ -------------------- JMP ABSO -------------------------
 jmp_abso: 
-	func_begin
+	
 	ABSO
 
 	mov nesPC, nesEA
@@ -1401,7 +1398,7 @@ jmp_abso:
 
 @ -------------------- EOR ABSO -------------------------
 eor_abso: 
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -1422,7 +1419,7 @@ eor_abso:
 	func_retn
 @ -------------------- LSR ABSO-------------------------
 lsr_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -1450,7 +1447,7 @@ lsr_abso:
 	func_retn
 @ --------------------   BVC   -------------------------
 bvc:
-	func_begin
+	
 	REL
 
 	tst nesF, #overflowFlag
@@ -1472,7 +1469,7 @@ bvc_end:
 
 @ -------------------- EOR INDY -------------------------
 eor_indy: @ TODO: Penalty_Addr
-	func_begin
+	
 	INDY
 
 	mov r0, nesEA
@@ -1494,7 +1491,7 @@ eor_indy: @ TODO: Penalty_Addr
 
 @ -------------------- EOR ZPX -------------------------
 eor_zpx: 
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -1515,7 +1512,7 @@ eor_zpx:
 	func_retn
 @ -------------------- LSR ZPX -------------------------
 lsr_zpx: 
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -1543,14 +1540,14 @@ lsr_zpx:
 	func_retn
 @ --------------------   CLI   -------------------------
 cli:	
-	func_begin
+	
 	bic nesF, nesF, #interruptFlag
 	add nesTick, nesTick, #0x2
 
 	func_retn
 @ -------------------- EOR ABSY -------------------------
 eor_absy:
-	func_begin
+	
 	ABSY
 
 	mov r0, nesEA
@@ -1571,7 +1568,7 @@ eor_absy:
 	func_retn
 @ -------------------- EOR ABSX -------------------------
 eor_absx: 
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -1592,7 +1589,7 @@ eor_absx:
 	func_retn
 @ -------------------- LSR ABSX -------------------------
 lsr_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -1621,7 +1618,7 @@ lsr_absx:
 
 @ ------------------ RTS -------------------------
 rts:
-	func_begin
+	
 
 	add nesStack, nesStack, #0x1
 	add r0, nesStack, #0x100
@@ -1640,7 +1637,7 @@ rts:
 
 @ ------------------ ADC INDX --------------------
 adc_indx: @ TODO PENALTY_OP
-	func_begin
+	
 	INDX
 	
 	mov r0, nesEA
@@ -1680,7 +1677,7 @@ adc_indx: @ TODO PENALTY_OP
 
 @ ------------------ ADC ZP ----------------------
 adc_zp:
-	func_begin
+	
 	ZP
 	
 	mov r0, nesEA
@@ -1719,7 +1716,7 @@ adc_zp:
 	func_retn
 @ ------------------ ROR ZP ----------------------
 ror_zp:  
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -1763,7 +1760,7 @@ ror_zp_end:
 
 @ ------------------ PLA -------------------------
 pla:
-	func_begin
+	
 	add nesStack, nesStack, #0x1
 	add r0, nesStack, #0x100
 	bl memoryRead
@@ -1783,7 +1780,7 @@ pla:
 
 @ ------------------ ADC IMM ---------------------
 adc_imm:  
-	func_begin
+	
 	IMM
 	
 	mov r0, nesEA
@@ -1823,7 +1820,7 @@ adc_imm:
 
 @ ------------------ ROR_A -----------------------
 ror_a:
-	func_begin
+	
 	tst nesF, #carryFlag
 	bne ror_a_ne
 
@@ -1859,7 +1856,7 @@ ror_a_end:
 
 @ ------------------ JMP IND ---------------------
 jmp_ind: 
-	func_begin 
+	 
 	IND
 
 	mov nesPC, nesEA
@@ -1869,7 +1866,7 @@ jmp_ind:
 
 @ ------------------ ADC ABSO --------------------
 adc_abso: 
-	func_begin
+	
 	ABSO
 	
 	mov r0, nesEA
@@ -1909,7 +1906,7 @@ adc_abso:
 
 @ ------------------ ROR ABSO --------------------
 ror_abso: 
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -1952,7 +1949,7 @@ ror_abso_end:
 	func_retn
 @ ----------------- BVS -------------------
 bvs:
-	func_begin
+	
 	REL
 
 	mov r0, nesF
@@ -1979,7 +1976,7 @@ bvs_end:
 
 @ ----------------- ADC INDY --------------
 adc_indy:
-	func_begin
+	
 	INDY
 	
 	mov r0, nesEA
@@ -2018,7 +2015,7 @@ adc_indy:
 	func_retn
 @ ----------------- ADC ZPX ---------------
 adc_zpx:
-	func_begin
+	
 	ZPX
 	
 	mov r0, nesEA
@@ -2057,7 +2054,7 @@ adc_zpx:
 	func_retn
 @ ----------------- ROR ZPX ---------------
 ror_zpx:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -2100,7 +2097,7 @@ ror_zpx_end:
 	func_retn
 @ ----------------- SEI -------------------
 sei: 
-	func_begin
+	
 	orr nesF, nesF, #interruptFlag
 	add nesTick, nesTick, #0x2
 
@@ -2108,7 +2105,7 @@ sei:
 
 @ ----------------- ADC ABSY --------------
 adc_absy: 
-	func_begin
+	
 	ABSY
 	
 	mov r0, nesEA
@@ -2147,7 +2144,7 @@ adc_absy:
 	func_retn
 @ ----------------- ADC ABSX --------------
 adc_absx:
-	func_begin
+	
 	ABSX
 	
 	mov r0, nesEA
@@ -2186,7 +2183,7 @@ adc_absx:
 	func_retn
 @ ----------------- ROR ABSX --------------
 ror_absx: @ penalty_addr
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -2230,7 +2227,7 @@ ror_absx_end:
 
 @ ----------------- STA INDX -------------------
 sta_indx:
-	func_begin
+	
 	INDX
 
 	mov r0, nesEA
@@ -2240,7 +2237,7 @@ sta_indx:
 	func_retn
 @ ----------------- STY ZP ---------------------
 sty_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2251,7 +2248,7 @@ sty_zp:
 
 @ ----------------- STA ZP ---------------------
 sta_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2261,7 +2258,7 @@ sta_zp:
 	func_retn
 @ ----------------- STX ZP ---------------------
 stx_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2272,7 +2269,7 @@ stx_zp:
 
 @ ----------------- DEY ------------------------
 dey: 
-	func_begin
+	
 	sub nesY, nesY, #0x1
 	cmp nesY, #0x0
 	bicne nesF, nesF, #zeroFlag
@@ -2287,7 +2284,7 @@ dey:
 
 @ ----------------- TXA ------------------------
 txa:
-	func_begin
+	
 	mov nesA, nesX
 
 	cmp nesA, #0x0
@@ -2304,7 +2301,7 @@ txa:
 
 @ ----------------- STY ABSO -------------------
 sty_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -2316,7 +2313,7 @@ sty_abso:
 
 @ ----------------- STA ABSO -------------------
 sta_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -2327,7 +2324,7 @@ sta_abso:
 	func_retn
 @ ----------------- STX ABSO -------------------
 stx_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -2340,7 +2337,7 @@ stx_abso:
 
 @ ---------------- BCC --------------------------
 bcc:
-	func_begin
+	
 	REL
 
 
@@ -2365,7 +2362,7 @@ bcc_end:
 
 @ ---------------- STA INDY ---------------------
 sta_indy: @ TODO: Penalty_addr
-	push {r0-r3, lr}
+	@push {r0-r3, lr}
 	INDY
 
 	mov r0, nesEA
@@ -2373,11 +2370,12 @@ sta_indy: @ TODO: Penalty_addr
 	bl writeMemory
 	add nesTick, nesTick, #0x6
 
-	pop {r0-r3, pc}
+	func_retn
+	@pop {r0-r3, pc}
 
 @ ---------------- STY ZPX ----------------------
 sty_zpx:
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -2389,7 +2387,7 @@ sty_zpx:
 
 @ ---------------- STA ZPX ----------------------
 sta_zpx:
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -2402,7 +2400,7 @@ sta_zpx:
 
 @ ---------------- STX ZPX ----------------------
 stx_zpy:
-	func_begin
+	
 	ZPY
 
 	mov r0, nesEA
@@ -2415,7 +2413,7 @@ stx_zpy:
 
 @ ---------------- TYA --------------------------
 tya:
-	func_begin
+	
 	mov nesA, nesY
 
 	cmp nesA, #0x0
@@ -2432,7 +2430,7 @@ tya:
 
 @ --------------- STA ABSY ----------------------
 sta_absy:
-	func_begin
+	
 	ABSY
 
 	mov r0, nesEA
@@ -2444,7 +2442,7 @@ sta_absy:
 
 @ --------------- TXS ---------------------------
 txs:
-	func_begin
+	
 	mov nesStack, nesX
 	add nesTick, nesTick, #0x2
 
@@ -2452,7 +2450,7 @@ txs:
 
 @ -------------- STA ABSX -----------------------
 sta_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -2464,7 +2462,7 @@ sta_absx:
 
 @ -------------- LDY IMM ------------------------
 ldy_imm: @ penalty_op
-	func_begin
+	
 	IMM
 
 	mov r0, nesEA
@@ -2485,7 +2483,7 @@ ldy_imm: @ penalty_op
 
 @ -------------- LDA INDX -----------------------
 lda_indx:
-	func_begin
+	
 	INDX
 
 	mov r0, nesEA
@@ -2505,7 +2503,7 @@ lda_indx:
 	func_retn
 @ -------------- LDX IMM ------------------------
 ldx_imm:
-	func_begin
+	
 	IMM
 
 	mov r0, nesEA
@@ -2525,7 +2523,7 @@ ldx_imm:
 	func_retn
 @ -------------- LDY ZP -------------------------
 ldy_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2545,7 +2543,7 @@ ldy_zp:
 	func_retn
 @ -------------- LDA ZP -------------------------
 lda_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2567,7 +2565,7 @@ lda_zp:
 
 @ -------------- LDX ZP -------------------------
 ldx_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2587,7 +2585,7 @@ ldx_zp:
 	func_retn
 @ -------------- TAY ----------------------------
 tay:
-	func_begin
+	
 	mov nesY, nesA
 
 	cmp nesY, #0x0
@@ -2604,7 +2602,7 @@ tay:
 
 @ -------------- LDA IMM ------------------------
 lda_imm: @ TODO: PENALTY OP
-	func_begin
+	
 	IMM
 	mov r0, nesEA
 	bl memoryRead
@@ -2624,7 +2622,7 @@ lda_imm: @ TODO: PENALTY OP
 
 @ -------------- TAX ----------------------------
 tax:
-	func_begin
+	
 	mov nesX, nesA
 
 	cmp nesX, #0x0
@@ -2640,7 +2638,7 @@ tax:
 	func_retn
 @ -------------- LDY ABSO -----------------------
 ldy_abso:
-	func_begin
+	
 	ABSO
 	mov r0, nesEA
 	bl memoryRead
@@ -2660,7 +2658,7 @@ ldy_abso:
 
 @ -------------- LDA ABSO -----------------------
 lda_abso:
-	func_begin
+	
 	ABSO
 	mov r0, nesEA
 	bl memoryRead
@@ -2680,7 +2678,7 @@ lda_abso:
 
 @ -------------- LDX ABSO -----------------------
 ldx_abso:
-	func_begin
+	
 	ABSO
 	mov r0, nesEA
 	bl memoryRead
@@ -2700,7 +2698,7 @@ ldx_abso:
 
 @ --------------------- BCS ---------------------------
 bcs:   
-	func_begin
+	
 	REL
 	
 	tst nesF, #carryFlag
@@ -2724,7 +2722,7 @@ bcs_end:
 
 @ --------------------- LDA INDY ----------------------
 lda_indy:
-	func_begin
+	
 	INDY
 	mov r0, nesEA
 	bl memoryRead
@@ -2744,7 +2742,7 @@ lda_indy:
 
 @ --------------------- LDA ZPX -----------------------
 ldy_zpx:
-	func_begin
+	
 	ZPX
 	mov r0, nesEA
 	bl memoryRead
@@ -2763,7 +2761,7 @@ ldy_zpx:
 	func_retn
 @ --------------------- LDA ZPX -----------------------
 lda_zpx: 
-	func_begin
+	
 	ZPX
 	mov r0, nesEA
 	bl memoryRead
@@ -2783,7 +2781,7 @@ lda_zpx:
 
 @ --------------------- LDX ZPY -----------------------
 ldx_zpy: 
-	func_begin
+	
 	ZPY
 	mov r0, nesEA
 	bl memoryRead
@@ -2802,14 +2800,14 @@ ldx_zpy:
 	func_retn
 @ --------------------- CLV ---------------------------
 clv:
-	func_begin
+	
 	bic nesF, nesF, #overflowFlag
 	add nesTick, nesTick, #0x2
 	func_retn
 
 @ --------------------- LDA ABSY ----------------------
 lda_absy: @ TODO: penalty_op
-	func_begin
+	
 	ABSY
 	mov r0, nesEA
 	bl memoryRead
@@ -2829,7 +2827,7 @@ lda_absy: @ TODO: penalty_op
 
 @ --------------------- TSX ---------------------------
 tsx:  
-	func_begin
+	
 	mov nesX, nesStack
 
 	cmp nesX, #0x0
@@ -2845,7 +2843,7 @@ tsx:
 	func_retn
 @ --------------------- LDY ABSX ----------------------
 ldy_absx: @ TODO: penalty_op
-	func_begin
+	
 	ABSX
 	mov r0, nesEA
 	bl memoryRead
@@ -2864,7 +2862,7 @@ ldy_absx: @ TODO: penalty_op
 	func_retn
 @ --------------------- LDA ABSX ----------------------
 lda_absx: @ TODO: penalty_op
-	func_begin
+	
 	ABSX
 	mov r0, nesEA
 	bl memoryRead
@@ -2883,7 +2881,7 @@ lda_absx: @ TODO: penalty_op
 	func_retn
 @ --------------------- LDX ABSY ----------------------
 ldx_absy: @ TODO: penalty_op
-	func_begin
+	
 	ABSY
 	mov r0, nesEA
 	bl memoryRead
@@ -2903,7 +2901,7 @@ ldx_absy: @ TODO: penalty_op
 
 @ --------------------- CPY IMM ----------------------
 cpy_imm: @ TODO: Penalty_Op
-	func_begin
+	
 	IMM
 	mov r0, nesEA
 	bl memoryRead
@@ -2926,7 +2924,7 @@ cpy_imm: @ TODO: Penalty_Op
 	func_retn
 @ --------------------- CMP INDX ---------------------
 cmp_indx:
-	func_begin
+	
 	INDX
 
 	mov r0, nesEA
@@ -2950,7 +2948,7 @@ cmp_indx:
 	func_retn
 @ --------------------- CPY ZP -----------------------
 cpy_zp:
-	func_begin
+	
 	ZP
 	mov r0, nesEA
 	bl memoryRead
@@ -2973,7 +2971,7 @@ cpy_zp:
 	func_retn
 @ --------------------- CMP ZP -----------------------
 cmp_zp:
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -2997,7 +2995,7 @@ cmp_zp:
 	func_retn
 @ --------------------- DEC ZP -----------------------
 dec_zp:
-	func_begin
+	
 	ZP
 	mov r0, nesEA
 	bl memoryRead
@@ -3020,7 +3018,7 @@ dec_zp:
 
 @ --------------------- INY --------------------------
 iny:
-	func_begin
+	
 	add nesY, nesY, #0x1
 
 	cmp nesY, #0x0
@@ -3037,7 +3035,7 @@ iny:
 
 @ --------------------- CMP IMM ----------------------
 cmp_imm: @ TODO: Penalty_op
-	func_begin
+	
 	IMM
 
 	mov r0, nesEA
@@ -3061,7 +3059,7 @@ cmp_imm: @ TODO: Penalty_op
 	func_retn
 @ --------------------- DEX --------------------------
 dex:
-	func_begin
+	
 	sub nesX, nesX, #0x1
 
 	cmp nesX, #0x0
@@ -3077,7 +3075,7 @@ dex:
 	func_retn
 @ --------------------- CPY ABSO ---------------------
 cpy_abso:
-	func_begin
+	
 	ABSO
 	mov r0, nesEA
 	bl memoryRead
@@ -3100,7 +3098,7 @@ cpy_abso:
 	func_retn
 @ --------------------- CMP ABSO ---------------------
 cmp_abso: @ TODO: Penalty_op
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -3124,7 +3122,7 @@ cmp_abso: @ TODO: Penalty_op
 	func_retn
 @ --------------------- DEC ABSO ---------------------
 dec_abso:
-	func_begin
+	
 	ABSO
 	mov r0, nesEA
 	bl memoryRead
@@ -3147,7 +3145,7 @@ dec_abso:
 
 @ --------------------- BNE ------------------------
 bne:    
-	func_begin
+	
 	REL
 
 	tst nesF, #zeroFlag
@@ -3171,7 +3169,7 @@ bne_eq:
 
 @ --------------------- CMP INDY -------------------
 cmp_indy: 
-	func_begin
+	
 	INDY
 
 	mov r0, nesEA
@@ -3195,7 +3193,7 @@ cmp_indy:
 	func_retn
 @ --------------------- CMP ZPX --------------------
 cmp_zpx: @ TODO: Penalty_op
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -3219,7 +3217,7 @@ cmp_zpx: @ TODO: Penalty_op
 	func_retn
 @ --------------------- DEC ZPX --------------------
 dec_zpx: 
-	func_begin
+	
 	ZPX
 	mov r0, nesEA
 	bl memoryRead
@@ -3241,14 +3239,14 @@ dec_zpx:
 	func_retn
 @ --------------------- CLD ------------------------
 cld:
-	func_begin
+	
 	bic nesF, nesF, #decimalFlag
 	add nesTick, nesTick, #0x2
 	func_retn
 
 @ --------------------- CMP ABSY -------------------
 cmp_absy: @ penalty_addr
-	func_begin
+	
 	ABSY
 
 	mov r0, nesEA
@@ -3272,7 +3270,7 @@ cmp_absy: @ penalty_addr
 	func_retn
 @ --------------------- CMP ABSX -------------------
 cmp_absx: @ penalty_addr
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -3296,7 +3294,7 @@ cmp_absx: @ penalty_addr
 	func_retn
 @ --------------------- DEC ABSX -------------------
 dec_absx: 
-	func_begin
+	
 	ABSX
 	mov r0, nesEA
 	bl memoryRead
@@ -3319,7 +3317,7 @@ dec_absx:
 
 @ ------------------- CPX IMM ---------------------
 cpx_imm:
-	func_begin
+	
 	IMM
 
 	mov r0, nesEA
@@ -3344,7 +3342,7 @@ cpx_imm:
 
 @ ------------------- SBC INDX --------------------
 sbc_indx: 
-	func_begin
+	
 	IMM
 	
 	mov r0, nesEA
@@ -3385,7 +3383,7 @@ sbc_indx:
 
 @ ------------------- CPX ZP ----------------------
 cpx_zp:  
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -3410,7 +3408,7 @@ cpx_zp:
 
 @ ------------------- SBC ZP ----------------------
 sbc_zp:  
-	func_begin
+	
 	ZP
 	
 	mov r0, nesEA
@@ -3450,7 +3448,7 @@ sbc_zp:
 	func_retn
 @ ------------------- INC ZP ----------------------
 inc_zp: 
-	func_begin
+	
 	ZP
 
 	mov r0, nesEA
@@ -3474,7 +3472,7 @@ inc_zp:
 
 @ ------------------- INDX ------------------------
 inx:
-	func_begin
+	
 	add nesX, nesX, #0x1
 
 	cmp nesX, #0x0
@@ -3490,7 +3488,7 @@ inx:
 
 @ ------------------- SBC IMM ---------------------
 sbc_imm:  
-	func_begin
+	
 	IMM
 	
 	mov r0, nesEA
@@ -3530,13 +3528,13 @@ sbc_imm:
 	func_retn
 @ ------------------- NOP -------------------------
 nop:
-	func_begin
+	
 	add nesTick, nesTick, #0x2
 	func_retn
 
 @ ------------------- CPX ABSO --------------------
 cpx_abso: 
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -3560,7 +3558,7 @@ cpx_abso:
 	func_retn
 @ ------------------- SBC ABSO --------------------
 sbc_abso: 
-	func_begin
+	
 	ABSO
 	
 	mov r0, nesEA
@@ -3600,7 +3598,7 @@ sbc_abso:
 	func_retn
 @ ------------------- INC ABSO --------------------
 inc_abso:
-	func_begin
+	
 	ABSO
 
 	mov r0, nesEA
@@ -3624,7 +3622,7 @@ inc_abso:
 
 @ ------------------- BEQ -------------------------
 beq:  
-	func_begin
+	
 	REL
 
 	tst nesF, #zeroFlag
@@ -3647,7 +3645,7 @@ beq_ne:
 	func_retn
 @ ------------------- SBC INDY --------------------
 sbc_indy: 
-	func_begin
+	
 	INDY
 	
 	mov r0, nesEA
@@ -3687,7 +3685,7 @@ sbc_indy:
 	func_retn
 @ ------------------- SBC ZPX ---------------------
 sbc_zpx:
-	func_begin
+	
 	ZPX
 	
 	mov r0, nesEA
@@ -3727,7 +3725,7 @@ sbc_zpx:
 	func_retn
 @ ------------------- INC ZPX ---------------------
 inc_zpx:
-	func_begin
+	
 	ZPX
 
 	mov r0, nesEA
@@ -3751,7 +3749,7 @@ inc_zpx:
 
 @ ------------------- SED -------------------------
 sed:
-	func_begin
+	
 	orr nesF, nesF, #decimalFlag
 	add nesTick, nesTick, #0x2
 
@@ -3759,7 +3757,7 @@ sed:
 
 @ ------------------- SBC ABSY --------------------
 sbc_absy:
-	func_begin
+	
 	ABSY
 	
 	mov r0, nesEA
@@ -3799,7 +3797,7 @@ sbc_absy:
 	func_retn
 @ ------------------- SBC ABSX --------------------
 sbc_absx: 
-	func_begin
+	
 	ABSX
 	
 	mov r0, nesEA
@@ -3839,7 +3837,7 @@ sbc_absx:
 	func_retn
 @ ------------------- INC ABSX --------------------
 inc_absx:
-	func_begin
+	
 	ABSX
 
 	mov r0, nesEA
@@ -3865,5 +3863,5 @@ inc_absx:
 @ ----------------- ILEGAL OPCODE ---------------------
 
 ILOP:
-	func_begin
+	
 	func_retn
