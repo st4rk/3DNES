@@ -86,7 +86,7 @@ teste:
 	
 	mov r0, nesPC
 	bl memoryRead
-	orr nesEA, nesEA, r0, ASL #8
+	orr nesEA, nesEA, r0, LSL #8
 	add 	nesPC, #0x2
 .endm
 
@@ -99,7 +99,7 @@ teste:
 	
 	mov r0, nesPC
 	bl memoryRead
-	orr nesEA, nesEA, r0, ASL #8
+	orr nesEA, nesEA, r0, LSL #8
 	add nesEA, nesX
 	add 	nesPC, #0x2
 .endm
@@ -113,7 +113,7 @@ teste:
 	
 	mov r0, nesPC
 	bl memoryRead
-	orr nesEA, nesEA, r0, ASL #8
+	orr nesEA, nesEA, r0, LSL #8
 	add nesEA, nesY
 	add 	nesPC, #0x2
 .endm
@@ -125,12 +125,12 @@ teste:
 	
 	mov r0, nesPC
 	bl memoryRead
-	orr nesEA, nesEA, r0, ASL #8
+	orr nesEA, nesEA, r0, LSL #8
 	mov r1, nesEA
 	
 	add nesPC, #0x2
 	add r2, r1, #0x1
-	orr r1, r2, r1, ASL #8
+	orr r1, r2, r1, LSL #8
 
 	mov r0, nesEA
 	bl memoryRead
@@ -138,7 +138,7 @@ teste:
 	mov r0, r2
 	bl memoryRead
 
-	orr nesEA, nesEA, r0, ASL #8
+	orr nesEA, nesEA, r0, LSL #8
 .endm
 
 .macro INDX @ indirect, x
@@ -154,7 +154,7 @@ teste:
 	add r0, nesEA, #0x1	
 	bl memoryRead
 
-	orr nesEA, r1, r0, ASL #8
+	orr nesEA, r1, r0, LSL #8
 .endm
 
 
@@ -164,7 +164,7 @@ teste:
 	add nesEA, r0, #0x1
 	add nesPC, #0x1
 
-	orr r1, nesEA, r0, ASL #8 @ data
+	orr r1, nesEA, r0, LSL #8 @ data
 
 	bl memoryRead
 	mov nesEA, r0
@@ -172,7 +172,7 @@ teste:
 	mov r0, r1
 	bl memoryRead
 
-	orr nesEA, nesEA, r0, ASL #8
+	orr nesEA, nesEA, r0, LSL #8
 	add nesEA, nesY
 .endm
 
@@ -290,6 +290,9 @@ CPU_Loop:
 	mov r2, #0x4
 	cmp r0, #0x0
 	movne r2, r2, LSL r0 @ r2 = r2 << r3
+	moveq r2, #0x0
+	@ JUMP TABLE DEBUG, INSTRUCTION BY INSTRUCTION
+	@ PAIN TIME :)
 	ldr r3, [r1, r2]
 	mov pc, r3
 
@@ -314,13 +317,13 @@ CPU_Reset:
 	mov nesA, 		#0x0
 	mov nesTick, 	#0x0
 	mov nesEA,		#0x0
-	mov nesStack,	#0x0
-	mov nesF,		#0x0
+	mov nesStack,	#0xFF
+	mov nesF,		#0x20
 
 	ldr nesPC, =(memory+0xFFFD)
 	ldr r0,    =(memory+0xFFFC) @ r0   = memory[0xFFFE]
-	ldrh nesPC, [nesPC]
-	ldrh r0, [r0]
+	ldr nesPC, [nesPC]
+	ldr r0, [r0]
 
 	and r0, r0, #0xFF00
 	orr nesPC, nesPC, r0
@@ -338,21 +341,21 @@ CPU_Reset:
 
 brk:
 	
-	add nesPC, #0x1
+	add nesPC, nesPC, #0x1
 	add r0, nesStack, #0x100
-	mov r1, nesPC, ASR #8
+	mov r1, nesPC, LSR #8
 	bl writeMemory
-	sub nesStack, #0x1
+	sub nesStack, nesStack, #0x1
 	add r0, nesStack, #0x100
 	add r1, nesPC, #0xFF
 	bl writeMemory
-	sub nesStack, #0x1
-	orr nesF, #sInterruptFlag
+	sub nesStack, nesStack, #0x1
+	orr nesF, nesF, #interruptFlag
 	add r0, nesStack, #0x100
 	mov r1, nesF
 	bl writeMemory
-	sub nesStack, #0x1
-	orr nesF, #interruptFlag
+	sub nesStack, nesStack, #0x1
+	orr nesF, nesF, #interruptFlag
 	ldr nesPC, =(memory+0xFFFF)
 	ldr r0,    =(memory+0xFFFE) @ r0   = memory[0xFFFE]
 	ldr nesPC, [nesPC]
@@ -747,7 +750,7 @@ jsr:
 	
 	add r0, nesStack, #0x100
 	sub r1, nesPC, #0x1
-	mov r1, r1, ASR #8
+	mov r1, r1, LSR #8
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
 
@@ -1371,7 +1374,7 @@ lsr_a:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov nesA, nesA, ASR #0x1
+	mov nesA, nesA, LSR #0x1
 
 	cmp nesA, #0x0
 	bicne nesF, nesF, #zeroFlag
@@ -1729,7 +1732,7 @@ ror_zp:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 
 	b ror_zp_end
 ror_zp_ne:
@@ -1738,7 +1741,7 @@ ror_zp_ne:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 	orr r0, r0, #signFlag
 
 ror_zp_end:
@@ -1828,7 +1831,7 @@ ror_a:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag	
 
-	mov nesA, nesA, ASR #0x1
+	mov nesA, nesA, LSR #0x1
 
 	b ror_zp_end
 ror_a_ne:
@@ -1837,7 +1840,7 @@ ror_a_ne:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov nesA, nesA, ASR #0x1
+	mov nesA, nesA, LSR #0x1
 	orr nesA, nesA, #signFlag
 
 ror_a_end:
@@ -1919,7 +1922,7 @@ ror_abso:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 
 	b ror_abso_end
 ror_abso_ne:
@@ -1928,7 +1931,7 @@ ror_abso_ne:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 	orr r0, r0, #signFlag
 
 ror_abso_end:
@@ -2067,7 +2070,7 @@ ror_zpx:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 
 	b ror_abso_end
 ror_zpx_ne:
@@ -2076,7 +2079,7 @@ ror_zpx_ne:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 	orr r0, r0, #signFlag
 
 ror_zpx_end:
@@ -2196,7 +2199,7 @@ ror_absx: @ penalty_addr
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 
 	b ror_abso_end
 ror_absx_ne:
@@ -2205,7 +2208,7 @@ ror_absx_ne:
 	orrne nesF, nesF, #carryFlag
 	biceq nesF, nesF, #carryFlag
 
-	mov r0, r0, ASR #0x1
+	mov r0, r0, LSR #0x1
 	orr r0, r0, #signFlag
 
 ror_absx_end:

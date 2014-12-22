@@ -1,5 +1,6 @@
 #include "nesLoadROM.h"
 
+extern u8 memory[65536];
 
 u8 	ROM_Header[15];
 u8	ROM_Title[128];

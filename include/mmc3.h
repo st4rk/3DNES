@@ -168,7 +168,8 @@ void mmc3_hblank(int scanline) {
         if(mmc3_irq_enable && (ppu_control2 & 0x18)) { //MMC3 IRQ
             mmc3_irq_counter = (mmc3_irq_counter - 1) & 0xFF;
             if(mmc3_irq_counter == 0) {
-                tick_count = 0; //[!!!] Workaround: Conserta partes da tela balançando em SMB3, Kirby
+                // TODO: Fix tick
+                //   tick_count = 0; //[!!!] Workaround: Conserta partes da tela balançando em SMB3, Kirby
                 IRQ();
                 mmc3_irq_counter = mmc3_irq_latch;
             }

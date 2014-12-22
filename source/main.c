@@ -20,7 +20,7 @@
 #include "FileSystem.h"
 
 
-unsigned char memory[65536];
+u8 memory[65536];
 
 u8 	*PPU_Memory;
 u8 	*SPRITE_Memory;
@@ -208,7 +208,7 @@ void NES_MAINLOOP() {
 					for (scanline = 0; scanline < 262; scanline++) {
 						if (MAPPER == 5) mmc5_hblank(scanline);
 
-						CPU_Execute(line_ticks);
+						CPU_Execute();
 
 						if (scanline < 240) {
 							if (MAPPER == 4) mmc3_hblank(scanline);
@@ -251,8 +251,6 @@ void NES_MAINLOOP() {
 	}
 
 }
-
-
 
 /* Read a byte */
 u8 	memoryRead(u32 addr) {
@@ -384,7 +382,8 @@ void writeMemory(u32 addr, u8 data) {
 	/* Sprite DMA Register */
 	if(addr == 0x4014) {
 		write_PPU_Memory(addr,data);
-		tick_count += 512;
+		// TODO: Fix Sprite DMA Tick
+		//nesTick += 512;
 		return;
 	}
 

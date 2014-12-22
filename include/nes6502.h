@@ -11,26 +11,10 @@
 
 #include <3ds.h>
 /* NES Memory */
-extern unsigned char memory[65536];
-
-/* Registers to use */
-
-	unsigned char A;
-	unsigned char P;
-	unsigned char X;
-	unsigned char Y;
-	unsigned char S;
-	int PC;
-
-
-int EA; //Effective Address
-int tick_count;
-
-/* opcode of 6502 */
-extern void (*op[0x100])();
+extern u8 memory[65536];
 
 
 extern void IRQ();
 extern void NMI();
-extern void CPU_reset();
-extern void CPU_execute(int cycles);
+extern void CPU_Reset();
+extern void CPU_Execute();
