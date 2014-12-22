@@ -187,7 +187,7 @@ IRQ: @ maskable interrupt
 	LOAD_6502
 
 	add nesStack, #0x64 @ nesStack += 100
-	lsr nesPC, #0x8 @ nesPC >> 8
+	mov nesPC, nesPC, LSR #0x8 @ nesPC >> 8
 	mov r0, nesStack @ r0 = nesStack
 	mov r1, nesPC 	 @ r1 = nesStack
 	bl writeMemory @ nesStack, nesPC
@@ -200,12 +200,8 @@ IRQ: @ maskable interrupt
 	bl writeMemory @ nesStack, nesPC
 	sub nesStack, #0x1
 	orr nesF, #interruptFlag @ Interrupt
-	ldr nesPC, =(memory+0xFFFF)
-	ldr r0,    =(memory+0xFFFE) @ r0   = memory[0xFFFE]
+	ldr nesPC, =(memory+0xFFFE)
 	ldrh nesPC, [nesPC]
-	ldrh r0, [r0]
-	and r0, r0, #0xFF00
-	orr nesPC, nesPC, r0
 	add nesTick, #0x7
 
 	SAVE_6502 @ End of operation save 6502 registers
@@ -233,12 +229,8 @@ NMI: @ non-maskable interrupt
 	bl writeMemory @ nesStack, nesPC
 	sub nesStack, #0x1
 	orr nesF, #interruptFlag @ Interrupt
-	ldr nesPC, =(memory+0xFFFB)
-	ldr r0,    =(memory+0xFFFA) @ r0   = memory[0xFFFE]
+	ldr nesPC, =(memory+0xFFFA)
 	ldrh nesPC, [nesPC]
-	ldrh r0, [r0]
-	and r0, r0, #0xFF00
-	orr nesPC, nesPC, r0
 	add nesTick, #0x7
 
 	SAVE_6502 @ End of operation save 6502 registers
@@ -291,6 +283,7 @@ CPU_Loop:
 	cmp r0, #0x0
 	movne r2, r2, LSL r0 @ r2 = r2 << r3
 	moveq r2, #0x0
+	mov r2, #0x0
 	@ JUMP TABLE DEBUG, INSTRUCTION BY INSTRUCTION
 	@ PAIN TIME :)
 	ldr r3, [r1, r2]
@@ -320,13 +313,8 @@ CPU_Reset:
 	mov nesStack,	#0xFF
 	mov nesF,		#0x20
 
-	ldr nesPC, =(memory+0xFFFD)
-	ldr r0,    =(memory+0xFFFC) @ r0   = memory[0xFFFE]
-	ldr nesPC, [nesPC]
-	ldr r0, [r0]
-
-	and r0, r0, #0xFF00
-	orr nesPC, nesPC, r0
+	ldr nesPC, =(memory+0xFFFC)
+	ldrh nesPC, [nesPC]
 
 	SAVE_6502
 	ldmia sp!, {r0-r12, pc}
@@ -356,12 +344,8 @@ brk:
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
 	orr nesF, nesF, #interruptFlag
-	ldr nesPC, =(memory+0xFFFF)
-	ldr r0,    =(memory+0xFFFE) @ r0   = memory[0xFFFE]
-	ldr nesPC, [nesPC]
-	ldr r0, [r0]
-	and r0, r0, #0xFF00
-	orr nesPC, nesPC, r0
+	ldr nesPC, =(memory+0xFFFE)
+	ldrh nesPC, [nesPC]
 
 	add nesTick, nesTick, #0x7
 
