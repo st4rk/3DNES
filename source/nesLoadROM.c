@@ -1,7 +1,5 @@
 #include "nesLoadROM.h"
 
-extern u8 memory[65536];
-
 u8 	ROM_Header[15];
 u8	ROM_Title[128];
 
@@ -12,16 +10,17 @@ int NES_LoadROM() {
 
 	/* Check if is a valid NES ROM */
 	if ((ROM_Header[0] != 'N' || (ROM_Header[1] != 'E') || (ROM_Header[2] != 'S'))) {
-		// TODO: Err Msg
+	
 		return -1;
 	}
 
 	for (i = 8; i < 15; i++) {
 		if ((ROM_Header[i] != 0x0) && (ROM_Header[i] != 0xFF)) {
-			// TODO: Err Msg
+			
 			return -1;
 		}
 	}
+
 
 
 	/* Load PRG, CHR, MAPPER, RCB etc */
@@ -177,6 +176,7 @@ int NES_LoadROM() {
 		memcpy(memory + 0x8000, ROM_Cache + 16, 16384);
 		memcpy(memory + 0xC000, ROM_Cache + 16 + ((PRG - 1) * 16384), 16384);
 	}
+
 	/* load chr data in ppu memory */
 	if(CHR != 0x00) {
 		memcpy(PPU_Memory, ROM_Cache + 16 + (PRG * 16384), 8192);
@@ -185,6 +185,7 @@ int NES_LoadROM() {
 		memcpy(ROM_Title, ROM_Cache + 16 + (PRG * 16384) + 8192, 128);
 
 	}
+
 
 	return 0;
 }

@@ -21,9 +21,6 @@
 CPU_6502_REG:
 		.long 0, 0, 0, 0, 0, 0, 0, 0, 0
 
-teste:
-		.long 0
-
 .equ TOTAL_CYCLE, 114
 @ 
 .text
@@ -44,50 +41,49 @@ teste:
 
 .macro IMM @ Immediate 
 	mov nesEA, nesPC
-	add nesPC, #0x100
+	add nesPC, nesPC,  #0x1
 .endm
 
 .macro ZP  @ zeroPage
 	mov r0, nesPC
 	bl memoryRead 
-	add nesPC, #0x1
+	add nesPC, nesPC, #0x1
 	mov nesEA, r0
 .endm
 
 .macro ZPX @ zeroPage X
 	mov r0, nesPC
 	bl memoryRead
-	add nesPC, #0x1
+	add nesPC, nesPC, #0x1
 	add nesEA, r0, nesX
 .endm
 
 .macro ZPY @ zeroPage Y
 	mov r0, nesPC
 	bl memoryRead
-	add nesPC, #0x1
+	add nesPC, nesPC, #0x1
 	add nesEA, r0, nesY
 .endm
 
 .macro REL @ relative for branch ops (8 bit immediate value, sign-extended)
 	mov r0, nesPC
 	bl memoryRead
-	add nesPC, #0x1
+	add nesPC, nesPC, #0x1
 	mov nesEA, r0
 	cmp 	nesEA, #0x80
-	sublt 	nesEA, #0x100 @ If (nesEA >= 0x80) nesEA -= 0x100
+	subge 	nesEA, #0x100 @ If (nesEA >= 0x80) nesEA -= 0x100
 .endm
 
 .macro ABSO @ absolute
 	mov r0, nesPC
 	bl memoryRead
 	mov nesEA, r0
-	
-	add nesPC, #0x1
-	
-	mov r0, nesPC
+	add r0, nesPC, #0x1
 	bl memoryRead
-	orr nesEA, nesEA, r0, LSL #8
-	add 	nesPC, #0x2
+
+	mov r0, r0, LSL #8
+	orr nesEA, nesEA, r0
+	add nesPC, nesPC, #0x2
 .endm
 
 .macro ABSX @ absolute, X  TODO: addr in cycles
@@ -95,13 +91,13 @@ teste:
 	bl memoryRead
 	mov nesEA, r0
 	
-	add nesPC, #0x1
-	
-	mov r0, nesPC
+	add r0, nesPC, #0x1
 	bl memoryRead
-	orr nesEA, nesEA, r0, LSL #8
-	add nesEA, nesX
-	add 	nesPC, #0x2
+	mov r0, r0, LSL #8
+	orr nesEA, nesEA, r0
+	add nesEA, nesEA, nesX
+
+	add nesPC, nesPC, #0x2
 .endm
 
 .macro ABSY @ absolute, Y  TODO: addr in cycles
@@ -109,71 +105,84 @@ teste:
 	bl memoryRead
 	mov nesEA, r0
 	
-	add nesPC, #0x1
-	
-	mov r0, nesPC
+	add r0, nesPC, #0x1
 	bl memoryRead
-	orr nesEA, nesEA, r0, LSL #8
-	add nesEA, nesY
-	add 	nesPC, #0x2
+	mov r0, r0, LSL #8
+	orr nesEA, nesEA, r0
+	add nesEA, nesEA, nesY
+
+	add nesPC, nesPC, #0x2
 .endm
 
 .macro IND  @ indirect
 	mov r0, nesPC
 	bl memoryRead
-	add nesPC, #0x1
 	
-	mov r0, nesPC
+	mov r1, r0 @
+	add r0, nesPC, #0x1
 	bl memoryRead
-	orr nesEA, nesEA, r0, LSL #8
-	mov r1, nesEA
 	
-	add nesPC, #0x2
-	add r2, r1, #0x1
-	orr r1, r2, r1, LSL #8
+	mov r0, r0, LSL #8
+	orr r1, r1, r0 @ r1 = temp
 
-	mov r0, nesEA
+	add nesPC, nesPC, #0x2
+
+	and r2, r1, #0xFF00
+	add r3, r1, #0x1
+	and r3, r3, #0xFF
+	orr r2, r2, r3 @ r2 = data
+
+	mov r0, r1
 	bl memoryRead
 	mov nesEA, r0
+
 	mov r0, r2
 	bl memoryRead
 
-	orr nesEA, nesEA, r0, LSL #8
+	mov r0, r0, LSL #8 
+	orr nesEA, nesEA, r0
 .endm
 
 .macro INDX @ indirect, x
 	mov r0, nesPC
 	bl memoryRead
-	add nesEA, r0, nesX
-	add nesPC, #0x1
+	add r1, r0, nesX @ r1 = temp 
+	add nesPC, nesPC, #0x1
 
-	mov r0, nesEA
+	and r0, r1, #0xFF
 	bl memoryRead
-	mov r1, r0
+	mov nesEA, r0
 
-	add r0, nesEA, #0x1	
+	add r0, r1, #0x1
+	and r0, r0, #0xFF
 	bl memoryRead
+	mov r0, r0, LSL #8
 
-	orr nesEA, r1, r0, LSL #8
+	orr nesEA, nesEA, r0
 .endm
 
 
 .macro INDY  @ indirect, y  TODO: addr in cycles
 	mov r0, nesPC
 	bl memoryRead
-	add nesEA, r0, #0x1
-	add nesPC, #0x1
-
-	orr r1, nesEA, r0, LSL #8 @ data
-
-	bl memoryRead
-	mov nesEA, r0
 	
+	add nesPC, nesPC, #0x1
+	
+	and r1, r0, #0xFF00
+	add r3, r0, #0x1
+	and r3, r3, #0xFF
+	orr r1, r1, r3
+
+	bl memoryRead @ r0 is the same yet =)
+	mov r2, r0
+
 	mov r0, r1
 	bl memoryRead
 
-	orr nesEA, nesEA, r0, LSL #8
-	add nesEA, nesY
+	mov r0, r0, LSL #8
+	orr r2, r2, r0
+
+	add nesEA, r2, nesY
 .endm
 
 
@@ -270,27 +279,32 @@ opcodeJumpTable:
 
 .global CPU_Execute
 CPU_Execute:
-	stmdb sp!, {r0-r12, lr}
+	push {r0-r12, lr}
 	LOAD_6502 @ Load All Registers
 	b end_execute @ Start CPU_Loop
 
 CPU_Loop:
-	ldr r1, =memory 
+
+	ldr r1, =memory
 	ldrb r0, [r1, nesPC] @ opcode number
 	add nesPC, nesPC, #0x1 @ r0 = memory[nesPC], nesPC++
-	ldr r1, =opcodeJumpTable	@ Instruction Fetch
-	mov r2, #0x4
-	cmp r0, #0x0
-	movne r2, r2, LSL r0 @ r2 = r2 << r3
-	moveq r2, #0x0
-	mov r2, #0x0
-	@ JUMP TABLE DEBUG, INSTRUCTION BY INSTRUCTION
-	@ PAIN TIME :)
-	ldr r3, [r1, r2]
-	mov pc, r3
+	ldr r1, =opcodeJumpTable @ Instruction Fetch
+	ldr r2, [r1, r0, LSL #2]
+
+	mov pc, r2
+
+	@ DEBUG CPU
+	@mov r1, nesPC
+	@bl DEBUG_CPU
+	@ldr r2, =0xFFFF
+	@cmp nesPC, r2
+	@moveq nesPC, #0x0
+	@SAVE_6502
+	@pop {r0-r12, pc}
+	@mov pc, r3
 
 end_execute:
-	add nesTick, nesTick, #0x1
+
 	cmp nesTick, #TOTAL_CYCLE
 	blt CPU_Loop @ if (nesTick < TOTAL_CYCLE) GoTo CPU_Loop
 
@@ -307,8 +321,8 @@ CPU_Reset:
 
 	mov nesX, 		#0x0
 	mov nesY, 		#0x0
-	mov nesA, 		#0x0
-	mov nesTick, 	#0x0
+	mov nesA,		#0x0
+	mov nesTick,	#0x0
 	mov nesEA,		#0x0
 	mov nesStack,	#0xFF
 	mov nesF,		#0x20

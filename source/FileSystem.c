@@ -157,7 +157,6 @@ void NES_LoadSelectedGame() {
 	FSFILE_GetSize(fileHandle, &ROM_Size);
 	FSFILE_Read(fileHandle, &bytesRead, 0x0, (u32*)ROM_Cache, (u32)ROM_Size);
 	FSFILE_Close(fileHandle);
-
 	
 	/* FREE Allocation */
 	linearFree(ROM_DIR);

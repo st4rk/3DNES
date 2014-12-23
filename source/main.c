@@ -20,7 +20,8 @@
 #include "FileSystem.h"
 
 
-u8 memory[65536];
+/* CPU Debugger, just enable it in debug_builds */
+#define CPU_DEBUG 1
 
 u8 	*PPU_Memory;
 u8 	*SPRITE_Memory;
@@ -67,6 +68,7 @@ void INIT_3DS() {
 	ENABLE_Sprite		= true;
 	inGame				= false;
 	VSYNC				= true;
+
 }
 
 /* It will init and load the ROM List */
@@ -87,10 +89,9 @@ void EXIT_3DS() {
 	//  if (fileSystem.fileList != NULL)
 	//  linearFree (fileSystem.fileList);
 
-
+	linearFree (memory);
 	linearFree (PPU_Memory);
 	linearFree (SPRITE_Memory);
-
 
 	fsExit();
 	hidExit();
@@ -103,10 +104,9 @@ void EXIT_3DS() {
 void INIT_EMULATION() {
 
 	if (NES_LoadROM() == -1) {
-		draw_string_c(100, "ROM ERRO");
+		
 		inGame = false;
 	}
-
 
 	if (MAPPER == 4) 
 		mmc3_reset();
@@ -177,6 +177,15 @@ void NES_CheckJoypad() {
     }
 }
 
+#ifdef CPU_DEBUG
+	void DEBUG_CPU(u8 nesPC, u8 jump, u8 op) {
+		char cpu_c[55];
+
+		sprintf(cpu_c, "PC: %X, jt: %X, op: %x", nesPC, jump, op);
+		draw_string_c(5, cpu_c);
+
+	}
+#endif
 
 void NES_MAINLOOP() {
 	APP_STATUS status;
@@ -229,9 +238,9 @@ void NES_MAINLOOP() {
 					skipFrame++;
 
 					
-					gspWaitForEvent(GSPEVENT_VBlank0, false);
-					//if (VSYNC)		
-					//	gspWaitForVBlank();
+					//gspWaitForEvent(GSPEVENT_VBlank0, false);
+					if (VSYNC)		
+						gspWaitForVBlank();
 				}
 			break;
 

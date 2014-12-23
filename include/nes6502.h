@@ -10,9 +10,8 @@
 
 
 #include <3ds.h>
-/* NES Memory */
-extern u8 memory[65536];
 
+u8 memory[65536];
 
 extern void IRQ();
 extern void NMI();
