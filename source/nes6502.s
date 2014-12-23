@@ -224,23 +224,26 @@ NMI: @ non-maskable interrupt
 
 	LOAD_6502 @ Load 6502 Registers
 
-	add nesStack, #0x64 @ nesStack += 100
-	lsr nesPC, #0x8 @ nesPC >> 8
-	mov r0, nesStack @ r0 = nesStack
-	mov r1, nesPC 	 @ r1 = nesStack
-	bl writeMemory @ nesStack, nesPC
-	sub nesStack, #0x1 @ nesStack--
-	mov r0, nesStack @ r0 = nesStack
-	bl writeMemory @ nesStack, nesPC
-	sub nesStack, #0x1 @ nesStack--
-	mov r0, nesStack
-	orr nesF, #sInterruptFlag @ software Interrupt Flag
-	bl writeMemory @ nesStack, nesPC
-	sub nesStack, #0x1
-	orr nesF, #interruptFlag @ Interrupt
+	add r0, nesStack, #0x100
+	mov r1, nesPC, LSR #8
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	add r0, nesStack, #0x100
+	and r1, nesPC, #0xFF
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	orr nesF, nesF, #sInterruptFlag
+	add r0, nesStack, #0x100
+	mov r1, nesF
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	orr nesF, nesF, #interruptFlag
 	ldr nesPC, =(memory+0xFFFA)
 	ldrh nesPC, [nesPC]
-	add nesTick, #0x7
+	add nesTick, nesTick, #0x7
 
 	SAVE_6502 @ End of operation save 6502 registers
 	
@@ -308,7 +311,7 @@ end_execute:
 	cmp nesTick, #TOTAL_CYCLE
 	blt CPU_Loop @ if (nesTick < TOTAL_CYCLE) GoTo CPU_Loop
 
-	sub nesTick, nesTick, #TOTAL_CYCLE
+	mov nesTick, #0x0
 
 	SAVE_6502
 	ldmia sp!, {r0-r12, pc}
@@ -348,15 +351,18 @@ brk:
 	mov r1, nesPC, LSR #8
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
-	add r1, nesPC, #0xFF
+	and r1, nesPC, #0xFF
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	orr nesF, nesF, #interruptFlag
 	add r0, nesStack, #0x100
 	mov r1, nesF
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	orr nesF, nesF, #interruptFlag
 	ldr nesPC, =(memory+0xFFFE)
 	ldrh nesPC, [nesPC]
@@ -751,11 +757,14 @@ jsr:
 	mov r1, r1, LSR #8
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 
 	add r0, nesStack, #0x100
 	sub r1, nesPC, #0x1
+	and r1, r1, #0xFF
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 
 	mov nesPC, nesEA
 
@@ -878,7 +887,9 @@ rol_end:
 @ ---------------------- PLP --------------------------------
 plp:
 	
+
 	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
 	orr nesF, r0, #0x20
@@ -1243,24 +1254,28 @@ rol_xend:
 @ -------------------- RTI -------------------------
 rti:
 	
+
 	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
 
 	orr nesF, r0, #0x20
 
+
 	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
-	add nesStack, nesStack, #0x1
+	mov nesPC, r0
 
+	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
 
-	and r0, r0, #0xFF00
+	mov r0, r0, LSL #8
 	orr nesPC, nesPC, r0
-
-	add nesTick, nesTick, #0x6
 
 	func_retn
 
@@ -1338,6 +1353,7 @@ pha:
 	mov r1, nesA
 	bl writeMemory
 	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 
 	add nesTick, nesTick, #0x3
 
@@ -1622,17 +1638,24 @@ rts:
 	
 
 	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
-	mov nesPC, r0
+	orr nesF, r0, #0x20
+
 	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
 
-	and r0, r0, #0xFF00
+	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	mov nesPC, r0
+	add r0, nesStack, #0x100
+	bl memoryRead
+
+	mov r0, r0, LSL #8
 	orr nesPC, nesPC, r0
-	add nesPC, nesPC, #0x1
-	add nesTick, nesTick, #0x6
 
 	func_retn
 
@@ -1763,6 +1786,7 @@ ror_zp_end:
 pla:
 	
 	add nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
 	add r0, nesStack, #0x100
 	bl memoryRead
 	mov nesA, r0
