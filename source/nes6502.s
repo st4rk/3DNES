@@ -55,14 +55,18 @@ CPU_6502_REG:
 	mov r0, nesPC
 	bl memoryRead
 	add nesPC, nesPC, #0x1
+
 	add nesEA, r0, nesX
+	and nesEA, nesEA, #0xFF
 .endm
 
 .macro ZPY @ zeroPage Y
 	mov r0, nesPC
 	bl memoryRead
 	add nesPC, nesPC, #0x1
+
 	add nesEA, r0, nesY
+	and nesEA, nesEA, #0xFF
 .endm
 
 .macro REL @ relative for branch ops (8 bit immediate value, sign-extended)
@@ -195,20 +199,23 @@ IRQ: @ maskable interrupt
 	stmdb sp!, {r0-r12, lr}
 	LOAD_6502
 
-	add nesStack, #0x64 @ nesStack += 100
-	mov nesPC, nesPC, LSR #0x8 @ nesPC >> 8
-	mov r0, nesStack @ r0 = nesStack
-	mov r1, nesPC 	 @ r1 = nesStack
-	bl writeMemory @ nesStack, nesPC
-	sub nesStack, #0x1 @ nesStack--
-	mov r0, nesStack @ r0 = nesStack
-	bl writeMemory @ nesStack, nesPC
-	sub nesStack, #0x1 @ nesStack--
-	mov r0, nesStack
-	orr nesF, #sInterruptFlag @ software Interrupt Flag
-	bl writeMemory @ nesStack, nesPC
-	sub nesStack, #0x1
-	orr nesF, #interruptFlag @ Interrupt
+	add r0, nesStack, #0x100
+	mov r1, nesPC, LSR #8
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	add r0, nesStack, #0x100
+	and r1, nesPC, #0xFF
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	orr nesF, nesF, #sInterruptFlag
+	add r0, nesStack, #0x100
+	mov r1, nesF
+	bl writeMemory
+	sub nesStack, nesStack, #0x1
+	and nesStack, nesStack, #0xFF
+	orr nesF, nesF, #interruptFlag
 	ldr nesPC, =(memory+0xFFFE)
 	ldrh nesPC, [nesPC]
 	add nesTick, #0x7
@@ -1678,10 +1685,10 @@ adc_indx: @ TODO PENALTY_OP
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -1718,10 +1725,10 @@ adc_zp:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -1822,10 +1829,10 @@ adc_imm:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -1908,10 +1915,10 @@ adc_abso:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -2018,10 +2025,10 @@ adc_indy:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -2057,10 +2064,10 @@ adc_zpx:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -2147,10 +2154,10 @@ adc_absy:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -2186,10 +2193,10 @@ adc_absx:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3385,10 +3392,10 @@ sbc_indx:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3451,10 +3458,10 @@ sbc_zp:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3531,10 +3538,10 @@ sbc_imm:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3601,10 +3608,10 @@ sbc_abso:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3688,10 +3695,10 @@ sbc_indy:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3728,10 +3735,10 @@ sbc_zpx:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3800,10 +3807,10 @@ sbc_absy:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3840,10 +3847,10 @@ sbc_absx:
 	eor r3, nesA, r0
 	mvn r3, r3
 
-	eor r4, nesA, r2
-	and r4, r4, #0x80
+	eor r1, nesA, r2
+	and r1, r1, #0x80
 
-	tst r3, r4
+	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
@@ -3868,6 +3875,7 @@ inc_absx:
 	mov r0, nesEA
 	bl memoryRead
 	add r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
