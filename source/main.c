@@ -479,12 +479,6 @@ void writeMemory(u32 addr, u8 data) {
 	memory[addr] = data;
 }
 
-void DEATH() {
-	while(1) {
-
-	}
-}
-
 int main() {
 	
 	/* Set FrameBuffer Format */
