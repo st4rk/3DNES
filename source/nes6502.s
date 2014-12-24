@@ -19,7 +19,7 @@
 
 .global CPU_6502_REG @ 6502 Registers, we will load/save the registers here
 CPU_6502_REG:
-		.long 0, 0, 0, 0, 0, 0, 0, 0, 0
+		.long 0, 0, 0, 0, 0, 0, 0, 0
 
 .equ TOTAL_CYCLE, 114
 
@@ -297,24 +297,16 @@ CPU_Loop:
 
 	ldr r1, =memory
 	ldrb r0, [r1, nesPC] @ opcode number
+
 	add nesPC, nesPC, #0x1 @ r0 = memory[nesPC], nesPC++
 	ldr r1, =opcodeJumpTable @ Instruction Fetch
 	ldr r2, [r1, r0, LSL #2]
 
+	@ CPU Debug, store the last instruction executed
 	ldr r3, =lastInstruction
-	strb r0, [r3]
+	strh r0, [r3]
 	
 	mov pc, r2
-
-	@ DEBUG CPU
-	@mov r1, nesPC
-	@bl DEBUG_CPU
-	@ldr r2, =0xFFFF
-	@cmp nesPC, r2
-	@moveq nesPC, #0x0
-	@SAVE_6502
-	@pop {r0-r12, pc}
-	@mov pc, r3
 
 end_execute:
 
@@ -330,7 +322,6 @@ end_execute:
 .global CPU_Reset
 CPU_Reset:
 	stmdb sp!, {r0-r12, lr}
-	LOAD_6502
 
 	mov nesX, 		#0x0
 	mov nesY, 		#0x0
@@ -807,8 +798,6 @@ and_indx:
 
 @ ---------------------- BIT ZP -----------------------------
 bit_zp:
-	
-
 	ZP
 
 	mov r0, nesEA
@@ -1023,7 +1012,7 @@ rol_abso:
 	bl memoryRead
 
 	tst nesF, #0x1
-	bne rol_eq_abso
+	beq rol_eq_abso
 
 	tst r0, #signFlag
 	orrne nesF, nesF, #carryFlag
@@ -2398,7 +2387,6 @@ bcc_end:
 
 @ ---------------- STA INDY ---------------------
 sta_indy: @ TODO: Penalty_addr
-	@push {r0-r3, lr}
 	INDY
 
 	mov r0, nesEA
@@ -2407,7 +2395,7 @@ sta_indy: @ TODO: Penalty_addr
 	add nesTick, nesTick, #0x6
 
 	func_retn
-	@pop {r0-r3, pc}
+
 
 @ ---------------- STY ZPX ----------------------
 sty_zpx:

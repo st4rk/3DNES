@@ -28,7 +28,7 @@ u8 	*SPRITE_Memory;
 u8	frameSkip;
 u8	skipFrame;
 
-u8  lastInstruction = 0;
+u16  lastInstruction = 0;
 
 u32 PAD1_Data;
 u32	line_ticks = 114;
@@ -179,12 +179,17 @@ void NES_CheckJoypad() {
     }
 }
 
+int cpu_i = 1;
 #ifdef CPU_DEBUG
 	void DEBUG_CPU() {
 		char cpu_c[55];
 
+		if (cpu_i >= 15) return;
+
 		sprintf(cpu_c, "Last Instruction: 0x%X", lastInstruction);
-		draw_string_c(5, cpu_c);
+		draw_string_c(9 * cpu_i, cpu_c);
+		cpu_i++;
+
 
 	}
 #endif
@@ -214,7 +219,7 @@ void NES_MAINLOOP() {
 						skipFrame = 0;
 
 					if (skipFrame == 0)
-						NES_ColorBackground();
+						//NES_ColorBackground();
 
 					for (scanline = 0; scanline < 262; scanline++) {
 						if (MAPPER == 5) mmc5_hblank(scanline);
