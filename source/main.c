@@ -28,6 +28,8 @@ u8 	*SPRITE_Memory;
 u8	frameSkip;
 u8	skipFrame;
 
+u8  lastInstruction = 0;
+
 u32 PAD1_Data;
 u32	line_ticks = 114;
 
@@ -178,10 +180,10 @@ void NES_CheckJoypad() {
 }
 
 #ifdef CPU_DEBUG
-	void DEBUG_CPU(u8 nesPC, u8 jump, u8 op) {
+	void DEBUG_CPU() {
 		char cpu_c[55];
 
-		sprintf(cpu_c, "PC: %X, jt: %X, op: %x", nesPC, jump, op);
+		sprintf(cpu_c, "Last Instruction: 0x%X", lastInstruction);
 		draw_string_c(5, cpu_c);
 
 	}
@@ -193,7 +195,7 @@ void NES_MAINLOOP() {
 	int scanline = 0;
 
 	while ((status = aptGetStatus()) != APP_EXITING ) {
-
+		
 		switch (status) {
 			case APP_RUNNING:
 				if (!inGame) {
@@ -230,6 +232,8 @@ void NES_MAINLOOP() {
 						}
 					}
 
+					DEBUG_CPU();
+					
 					NES_CheckJoypad();
 					
 					if (skipFrame == 0)
@@ -241,6 +245,7 @@ void NES_MAINLOOP() {
 					//gspWaitForEvent(GSPEVENT_VBlank0, false);
 					if (VSYNC)		
 						gspWaitForVBlank();
+
 				}
 			break;
 
@@ -474,6 +479,11 @@ void writeMemory(u32 addr, u8 data) {
 	memory[addr] = data;
 }
 
+void DEATH() {
+	while(1) {
+
+	}
+}
 
 int main() {
 	

@@ -22,7 +22,7 @@ CPU_6502_REG:
 		.long 0, 0, 0, 0, 0, 0, 0, 0, 0
 
 .equ TOTAL_CYCLE, 114
-@ 
+
 .text
 
 @ ------------------------------------------------
@@ -75,7 +75,7 @@ CPU_6502_REG:
 	add nesPC, nesPC, #0x1
 	mov nesEA, r0
 	cmp 	nesEA, #0x80
-	subge 	nesEA, #0x100 @ If (nesEA >= 0x80) nesEA -= 0x100
+	subhs 	nesEA, #0x100 @ If (nesEA >= 0x80) nesEA -= 0x100
 .endm
 
 .macro ABSO @ absolute
@@ -301,6 +301,9 @@ CPU_Loop:
 	ldr r1, =opcodeJumpTable @ Instruction Fetch
 	ldr r2, [r1, r0, LSL #2]
 
+	ldr r3, =lastInstruction
+	strb r0, [r3]
+	
 	mov pc, r2
 
 	@ DEBUG CPU
@@ -758,6 +761,7 @@ asl_absx:
 
 @ ---------------------- JSR --------------------------------
 jsr:
+	ABSO
 	
 	add r0, nesStack, #0x100
 	sub r1, nesPC, #0x1
@@ -2692,6 +2696,7 @@ ldy_abso:
 lda_abso:
 	
 	ABSO
+
 	mov r0, nesEA
 	bl memoryRead
 	mov nesA, r0
