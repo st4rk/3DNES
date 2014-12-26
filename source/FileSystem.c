@@ -21,6 +21,21 @@ void unicodeToChar(char* dst, u16* src) {
     *dst=0x00;
 }
 
+void NES_DUMP(char instru[]) {
+	Handle dump;
+	u32 bytesRead;
+
+	FS_dirent dirStruct;
+	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/instru.txt");
+
+	
+	FSUSER_OpenFileDirectly(NULL, &dump, sdmcArchive, dirPath , FS_OPEN_WRITE | FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
+	FSFILE_GetSize(dump, &ROM_Size);
+	FSFILE_Write(dump, &bytesRead, 0x0, &instru,strlen(instru), 0x10001);
+	FSFILE_Close(dump);
+
+
+}
 
 /* Load Complete ROM LIST */
 void NES_LOADROMLIST() {

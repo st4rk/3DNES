@@ -2,11 +2,10 @@
 
 #include <3ds.h>
 #include "nesGlobal.h"
-#include "nesPPU.h"
 #include "nesSystem.h"
 #include "nesLoadROM.h"
 #include "nes6502.h"
-
+#include "nesPPU.h"
 
 #include "utils.h"
 #include "mmc1.h"	// 1
@@ -29,9 +28,10 @@ u8	frameSkip;
 u8	skipFrame;
 
 u16  lastInstruction = 0;
+u8   lastOP = 0;
+u8   lastA = 0;
 
 u32 PAD1_Data;
-u32	line_ticks = 114;
 
 bool CPU_Running;
 bool PAUSE_Emulation;
@@ -41,6 +41,8 @@ bool inGame;
 bool VSYNC;
 
 int PAD1_ReadCount = 0;
+
+extern u8 memory[65536];
 
 /* It will init all services necessary to Homebrew work ! */
 void INIT_3DS() {
@@ -52,7 +54,6 @@ void INIT_3DS() {
 	gfxInit();
 	hidInit(NULL);
 	gfxSet3D(false);
-	init_ppu();
 
 	PPU_Memory 		    = linearAlloc(16384);
 	SPRITE_Memory  	    = linearAlloc(256);
@@ -71,6 +72,8 @@ void INIT_3DS() {
 	inGame				= false;
 	VSYNC				= true;
 
+
+	init_ppu();
 }
 
 /* It will init and load the ROM List */
@@ -179,18 +182,30 @@ void NES_CheckJoypad() {
     }
 }
 
+void TESTE() {
+	while(1) {
+
+	}
+}
+
 int cpu_i = 1;
+int cpu_d = 1;
 #ifdef CPU_DEBUG
 	void DEBUG_CPU() {
 		char cpu_c[55];
 
-		if (cpu_i >= 15) return;
+		if (cpu_i >= 120000) {
+			if (cpu_d >= 8) return;
 
-		sprintf(cpu_c, "Last Instruction: 0x%X", lastInstruction);
-		draw_string_c(9 * cpu_i, cpu_c);
-		cpu_i++;
+			sprintf(cpu_c, "OP: 0x%X A: 0x%X , P: 0x%X\0", lastOP, lastInstruction, lastA);
+			draw_string(5, 11 * cpu_d, cpu_c);
+			cpu_d++;
 
-
+			NES_DUMP(cpu_c);
+		
+		} else {
+			cpu_i++;
+		}
 	}
 #endif
 
@@ -203,13 +218,14 @@ void NES_MAINLOOP() {
 		
 		switch (status) {
 			case APP_RUNNING:
+
 				if (!inGame) {
 					drawMenu();
 					NES_MainMenu();
 					drawBuffers();
 					gspWaitForVBlank();
 				} else {
-
+					ppu_status = 0;
 					if (!CPU_Running)
 						INIT_EMULATION();
 
@@ -219,7 +235,7 @@ void NES_MAINLOOP() {
 						skipFrame = 0;
 
 					if (skipFrame == 0)
-						//NES_ColorBackground();
+						NES_ColorBackground();
 
 					for (scanline = 0; scanline < 262; scanline++) {
 						if (MAPPER == 5) mmc5_hblank(scanline);
@@ -228,16 +244,17 @@ void NES_MAINLOOP() {
 
 						if (scanline < 240) {
 							if (MAPPER == 4) mmc3_hblank(scanline);
+
 							render_scanline(scanline);
+						
 						} else {
 							if (scanline == 241) {
 								if (exec_nmi_on_vblank) { NMI(); }
+
 								ppu_status = 0x80;
 							}
 						}
 					}
-
-					DEBUG_CPU();
 					
 					NES_CheckJoypad();
 					
@@ -246,8 +263,6 @@ void NES_MAINLOOP() {
 					
 					skipFrame++;
 
-					
-					//gspWaitForEvent(GSPEVENT_VBlank0, false);
 					if (VSYNC)		
 						gspWaitForVBlank();
 
@@ -299,7 +314,7 @@ u8 	memoryRead(u32 addr) {
 		ppu_addr_h =  0x0;
 
 		/* return bits 7-4 of unmodifyed ppu_status with bits 3-0 of the ppu_addr_tmp */
-		return (ppu_status_tmp & 0xE0) | (ppu_addr_tmp & 0x1F);
+		return (ppu_status_tmp);
 	}
 
 	if(addr == 0x2007) {

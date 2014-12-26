@@ -1,4 +1,9 @@
+
+#include "nesGlobal.h"
 #include "nesPPU.h"
+#include "nesSystem.h"
+#include "nesLoadROM.h"
+#include "nes6502.h"
 
 /* FONT, BACKGROUND */
 #include "gfx/imgdata.h"
@@ -6,6 +11,7 @@
 #include "gfx/bar.h"
 
 #include "palette.h"
+
 
 /* ppu control registers */
 u32 ppu_control1 = 0x00;
@@ -42,7 +48,7 @@ int mirror[4];
 int current_scanline;
 
 u32 posCount = 0;
-
+extern u8 memory[65536];
 extern u8 skipFrame;
 
 void drawBuffers() {
@@ -57,10 +63,11 @@ void init_ppu() {
     _24bppTo16bpp();
 }
 
+
 void write_PPU_Memory(u32 address,u8 data) {
 
     if(address == 0x2000) {
-        ppu_addr_tmp = data;
+      //  ppu_addr_tmp = data;
 
         ppu_control1 = data;
 
@@ -70,7 +77,7 @@ void write_PPU_Memory(u32 address,u8 data) {
         loopyT |= (data & 3) << 10; // (00000011)
 
         return;
-        }
+    }
 
     if(address == 0x2001) {
         ppu_addr_tmp = data;
@@ -379,7 +386,7 @@ void render_background(int scanline) {
                                                     if (lowbyte & fPix) pcolor = 1; else pcolor = 0;
                                                     if (highbyte & fPix) {pcolor += 2;}
                                                     if ((pcolor & 0x3) != 0) {
-                                                            draw_pixel(tilex - curcol, scanline, PPU_Memory[0x3F00 + (pcolor | bgpal)]);
+                                                             draw_pixel(tilex - curcol, scanline, PPU_Memory[0x3F00 + (pcolor | bgpal)]);
                                                     }
                                             }
                                             if (tilex <= 61183) {tilex += 256;}
