@@ -31,4 +31,5 @@ nesStack					.req r8
 nesPC						.req r9  
 nesEA						.req r10 
 nesTick						.req r11 
+nesMemory					.req r12
 

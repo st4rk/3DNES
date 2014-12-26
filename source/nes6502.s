@@ -292,15 +292,15 @@ CPU_Execute:
 	push {r0-r12, lr}
 	LOAD_6502 @ Load All Registers
 	b end_execute @ Start CPU_Loop
-	ldr nesMemory, =memory
+
 
 CPU_Loop:
-
+	ldr nesMemory, =memory
 	ldrb r0, [nesMemory, nesPC] @ opcode number
 	add nesPC, nesPC, #0x1 @ r0 = memory[nesPC], nesPC++
 	ldr r1, =opcodeJumpTable @ Instruction Fetch
 	ldr r2, [r1, r0, LSL #2]
-	
+
 	mov pc, r2
 end_execute:
 
@@ -3029,6 +3029,7 @@ dec_zp:
 	mov r0, nesEA
 	bl memoryRead
 	sub r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
@@ -3158,6 +3159,7 @@ dec_abso:
 	mov r0, nesEA
 	bl memoryRead
 	sub r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
@@ -3253,6 +3255,7 @@ dec_zpx:
 	mov r0, nesEA
 	bl memoryRead
 	sub r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
@@ -3330,6 +3333,7 @@ dec_absx:
 	mov r0, nesEA
 	bl memoryRead
 	sub r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
@@ -3398,6 +3402,7 @@ sbc_indx:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3464,6 +3469,7 @@ sbc_zp:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3485,6 +3491,7 @@ inc_zp:
 	mov r0, nesEA
 	bl memoryRead
 	add r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
@@ -3544,7 +3551,8 @@ sbc_imm:
 	tst r3, r1
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
-
+	
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3615,6 +3623,7 @@ sbc_abso:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3704,6 +3713,7 @@ sbc_indy:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3744,6 +3754,7 @@ sbc_zpx:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3765,6 +3776,7 @@ inc_zpx:
 	mov r0, nesEA
 	bl memoryRead
 	add r1, r0, #0x1
+	and r1, r1, #0xFF
 	mov r0, nesEA
 	bl writeMemory
 	bl memoryRead
@@ -3816,6 +3828,7 @@ sbc_absy:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0
@@ -3856,6 +3869,7 @@ sbc_absx:
 	orrne nesF, nesF, #overflowFlag
 	biceq nesF, nesF, #overflowFlag
 
+	and r2, r2, #0xFF
 	mov nesA, r2
 
 	cmp nesA, #0x0

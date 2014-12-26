@@ -182,12 +182,6 @@ void NES_CheckJoypad() {
     }
 }
 
-void TESTE() {
-	while(1) {
-
-	}
-}
-
 int cpu_i = 1;
 int cpu_d = 1;
 #ifdef CPU_DEBUG
