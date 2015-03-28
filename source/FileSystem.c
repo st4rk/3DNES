@@ -21,69 +21,39 @@ void unicodeToChar(char* dst, u16* src) {
     *dst=0x00;
 }
 
-void NES_DUMP(char instru[]) {
-	Handle dump;
-	u32 bytesRead;
-
-	FS_dirent dirStruct;
-	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/instru.txt");
-
-	
-	FSUSER_OpenFileDirectly(NULL, &dump, sdmcArchive, dirPath , FS_OPEN_WRITE | FS_OPEN_CREATE, FS_ATTRIBUTE_NONE);
-	FSFILE_GetSize(dump, &ROM_Size);
-	FSFILE_Write(dump, &bytesRead, 0x0, &instru,strlen(instru), 0x10001);
-	FSFILE_Close(dump);
-
-
-}
-
-/* Load Complete ROM LIST */
+ 
 void NES_LOADROMLIST() {
 	Handle romHandle;
 	
 	FS_dirent dirStruct;
 	FS_path dirPath = FS_makePath(PATH_CHAR, "/3DNES/ROMS");
 
-	/* INIT SDMC ARCHIVE */
+	// init SDMC archive
 	sdmcArchive = (FS_archive){0x9, (FS_path){PATH_EMPTY, 1, (u8*)""}};
 	FSUSER_OpenArchive(NULL, &sdmcArchive);
-
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
-	/* Get total of files/directory on 3DS SD */
-	int cont = 0;
-
+	// Get number of files in directory
+	fileSystem.totalFiles = 0
 	while(1) {
 		u32 dataRead = 0;
 		FSDIR_Read(romHandle, &dataRead, 1, &dirStruct);
 		if(dataRead == 0) break;
-		unicodeToChar(fileSystem.fileList[cont], dirStruct.name);
-		cont++;
+		fileSystem.totalFiles++;
 	}
 
-	/* Save total of files */
-	fileSystem.totalFiles = cont;
-
-
-	
-	
-	/*
-	TODO: Dynamic File Read
-	fileSystem.fileList = linearAlloc(MAX_FILENAME_SIZE * cont);
+	fileSystem.fileList = linearAlloc(MAX_FILENAME_SIZE * fileSystem.totalFiles);
 
 	FSUSER_OpenDirectory(NULL, &romHandle, sdmcArchive, dirPath);
 
-	cont = 0;
-
+	fileSystem.totalFiles = 0;
 	while(1) {
 		u32 dataRead = 0;
 		FSDIR_Read(romHandle, &dataRead, 1, &dirStruct);
 		if(dataRead == 0) break;
-		unicodeToChar(&fileSystem.fileList[MAX_FILENAME_SIZE * cont), dirStruct.name);
-		cont++;
+		unicodeToChar(&fileSystem.fileList[MAX_FILENAME_SIZE * fileSystem.totalFiles), dirStruct.name);
+		fileSystem.totalFiles++;
 	}
-	
-	*/
 
 	FSDIR_Close(romHandle);
 }
@@ -92,11 +62,8 @@ void NES_LOADROMLIST() {
 void NES_drawROMLIST() {
 	int i = 0;
 
-	// TODO: Fix select file bar 
-	//draw_select_bar(-67, (fileSystem.cFile * 15) + 53);
-
 	for(i = 0; i < fileSystem.totalFiles; i++) {
-		draw_string_c(55 + (i * 15), fileSystem.fileList[i]);
+		draw_string_c(55 + (i * 15), fileSystem.fileList[i * MAX_FILENAME_SIZE]);
 	}
 
 	draw_string(10, (fileSystem.cFile * 15) + 53, "->");
@@ -140,6 +107,12 @@ void FS_StringConc(char* dst, char* src1, char* src2) {
 
 }
 
+// TODO: 
+// Here will need a complete re-work, because the files now are loaded
+// in different way, so we need copy to the "filename stream" the correct 
+// size of filename, another important thing is reset the cpu
+// that include clear all registers
+
 void NES_LoadSelectedGame() {
 	u32    bytesRead = 0;
 	u32    SRAM_Size = 0;
@@ -147,7 +120,6 @@ void NES_LoadSelectedGame() {
 	Handle fileHandle;
 
 
-	/* Restart CPU */
 	CPU_Running = false;
 
 	/* Alloc ROM Directory */
@@ -156,8 +128,8 @@ void NES_LoadSelectedGame() {
 	/* Clear ROM_Dir */
 	memset(ROM_DIR, 0x0, ROMDIR_Size);
 
-	/* concatenate strings */
-	FS_StringConc(ROM_DIR,  "/3DNES/ROMS/", fileSystem.fileList[fileSystem.currFile]);
+
+	//FS_StringConc(ROM_DIR,  "/3DNES/ROMS/", fileSystem.fileList[fileSystem.currFile]);
 
 	/* TODO: FIX IT
 	/*if (SRAM_Name != NULL) {
@@ -172,9 +144,6 @@ void NES_LoadSelectedGame() {
 	FSFILE_GetSize(fileHandle, &ROM_Size);
 	FSFILE_Read(fileHandle, &bytesRead, 0x0, (u32*)ROM_Cache, (u32)ROM_Size);
 	FSFILE_Close(fileHandle);
-	
-	/* FREE Allocation */
-	linearFree(ROM_DIR);
 
 	/* Start Emulation */
 	inGame = true;

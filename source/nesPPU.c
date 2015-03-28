@@ -1,17 +1,18 @@
-
+// NES SYSTEM
 #include "nesGlobal.h"
 #include "nesPPU.h"
 #include "nesSystem.h"
 #include "nesLoadROM.h"
 #include "nes6502.h"
-
-/* FONT, BACKGROUND */
+// FONT, PALETTE
 #include "gfx/imgdata.h"
-#include "gfx/background.h"
-#include "gfx/bar.h"
-
 #include "palette.h"
 
+
+// TODO:
+// TOTAL REWRITE OF PPU
+// read documentation and optimize it 
+// neswiki 
 
 /* ppu control registers */
 u32 ppu_control1 = 0x00;
@@ -59,8 +60,6 @@ void drawBuffers() {
 
 void init_ppu() {
 
-    /* Convert 24bpp to 16 bpp */
-    _24bppTo16bpp();
 }
 
 

@@ -3,6 +3,6 @@
 3 - SRAM Save
 4 - Save State/Load State
 5 - Escrever MMC1 em Assembly
-6 - Escrever 6502 em Assembly
-7 - Fixar problemas e instruções incorretas do 6502
+6 - Escrever 6502 em Assembly - ok
+7 - Fixar problemas e instruções incorretas do 6502 - 80%
 8 - Escrever MMC3 em Assembly

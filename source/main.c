@@ -1,12 +1,13 @@
 #include <stdio.h>
-
 #include <3ds.h>
+
+// NES SYSTEM
 #include "nesGlobal.h"
 #include "nesSystem.h"
 #include "nesLoadROM.h"
 #include "nes6502.h"
 #include "nesPPU.h"
-
+// NES MAPPERS
 #include "utils.h"
 #include "mmc1.h"	// 1
 #include "unrom.h"	// 2
@@ -15,12 +16,9 @@
 #include "mmc5.h"	// 5
 #include "aorom.h"	// 7
 #include "mapper79.h"	// 79
-
+// FILESYSTEM, BACKGROUND, ETC
 #include "FileSystem.h"
-
-
-/* CPU Debugger, just enable it in debug_builds */
-#define CPU_DEBUG 1
+#include "background.h"
 
 u8 	*PPU_Memory;
 u8 	*SPRITE_Memory;
@@ -49,8 +47,6 @@ void INIT_3DS() {
 	srvInit();	
 	fsInit();
 	aptInit();
-	/* old ctrulib */
-	//aptSetupEventHandler();
 	gfxInit();
 	hidInit(NULL);
 	gfxSet3D(false);
@@ -88,11 +84,10 @@ void EXIT_3DS() {
 
 	/* Free All Linear Allocation */
 	if (SRAM_Name != NULL)
-		linearFree (SRAM_Name);
+        linearFree (SRAM_Name);
 	
-	// TODO: Dynamic File List
-	//  if (fileSystem.fileList != NULL)
-	//  linearFree (fileSystem.fileList);
+	if (fileSystem.fileList != NULL)
+        linearFree (fileSystem.fileList);
 
 	linearFree (memory);
 	linearFree (PPU_Memory);
@@ -182,27 +177,6 @@ void NES_CheckJoypad() {
     }
 }
 
-int cpu_i = 1;
-int cpu_d = 1;
-#ifdef CPU_DEBUG
-	void DEBUG_CPU() {
-		char cpu_c[55];
-
-		if (cpu_i >= 120000) {
-			if (cpu_d >= 8) return;
-
-			sprintf(cpu_c, "OP: 0x%X A: 0x%X , P: 0x%X\0", lastOP, lastInstruction, lastA);
-			draw_string(5, 11 * cpu_d, cpu_c);
-			cpu_d++;
-
-			NES_DUMP(cpu_c);
-		
-		} else {
-			cpu_i++;
-		}
-	}
-#endif
-
 void NES_MAINLOOP() {
 	APP_STATUS status;
 
@@ -280,7 +254,9 @@ void NES_MAINLOOP() {
 
 }
 
-/* Read a byte */
+// TODO 
+// Write memoryRead and memoryWrite in Assembly
+// i belive which it will improve the speed
 u8 	memoryRead(u32 addr) {
 	/* this is ram or rom so we can return the addr */
 	if (addr < 0x2000)
@@ -495,10 +471,6 @@ void writeMemory(u32 addr, u8 data) {
 
 int main() {
 	
-	/* Set FrameBuffer Format */
-	gfxSetScreenFormat(GFX_TOP,    GSP_RGB565_OES);
-	gfxSetScreenFormat(GFX_BOTTOM, GSP_RGB565_OES);
-
 	INIT_3DS();
 	INIT_FileSystem();
 

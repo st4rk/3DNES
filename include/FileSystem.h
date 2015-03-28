@@ -9,7 +9,7 @@
 #include <string.h>
 
 
-#define MAX_FILENAME_SIZE 0x106
+#define MAX_FILENAME_SIZE 0xA0
 
 
 /* File System Structure */
@@ -33,9 +33,7 @@ typedef struct FS_MENU {
 	/* Configuration Menu Cursor */
 	int cConfig;
 	/* FileList */
-	/*char *fileList; */
-
-	char fileList[0xFF][0x106];
+	char *fileList;
 
 	/* totalFiles */
 	int totalFiles;

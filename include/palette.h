@@ -28,20 +28,4 @@ rgb palette[64] = {
 };
 
 
-typedef struct RGB565 {
-    unsigned char COLOR_1;
-    unsigned char COLOR_2;
-} RGB565;
-
-RGB565 NES_Palette[64];
-
-void _24bppTo16bpp() {
-   int i = 0;
-
-    for (i = 0; i < 64; i++) {
-        NES_Palette[i].COLOR_1 = (palette[i].b >> 3) + ((palette[i].g & 0x1C) << 3);
-        NES_Palette[i].COLOR_2 = ((palette[i].g & 0xE0) >> 5) + (palette[i].r & 0xF8);
-    }    
-}
-
 #endif
